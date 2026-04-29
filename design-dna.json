@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "name": "WeData 3.0 Design DNA",
+    "description": "三维设计基因系统 — 覆盖 WeData 数据平台的设计系统 token、设计风格定性描述、视觉特效规范",
+    "source_references": [
+      "Figma: 3.0 框架&规则整理（新） — Bk3zejm0G736jb4bP7V5yY",
+      "Figma: WeData 视觉提升 — kdPqSMMrMcX9qBC4h2BdxQ (1517:113602, 1517:116271)",
+      "Figma: 3.0 框架 — 功能页 (171:72557 SQL编辑器, 171:79339 Notebook, 310:62446 工作流编排, 586:109448 工作流运行)",
+      "Code: app/page.tsx, components/ui/*.tsx",
+      "CLAUDE.md Design DNA spec"
+    ],
+    "created_at": "2026-04-02"
+  },
+
+  "design_system": {
+    "color": {
+      "palette_type": "analogous",
+      "primary": {
+        "hex": "#00C8D6",
+        "role": "品牌主色，用于 logo、品牌插画、AI 入口边框。10 级色阶：#EDFEFF → #2A7C85"
+      },
+      "secondary": {
+        "hex": "#1664FF",
+        "role": "功能强调色，用于链接、主 CTA、进行中图标、光标色、选中态。注意：功能页中 TDesign 系统使用 #0052D9 作为链接/Tab下划线色"
+      },
+      "accent": {
+        "hex": "#2873FF",
+        "role": "Agent 默认名称色；同时用于卡片激活态高亮"
+      },
+      "neutral": {
+        "scale": [
+          "#FFFFFF",
+          "#FAFBFC",
+          "#F7F8FB",
+          "#F2F4F8",
+          "#E9ECF1",
+          "#E6E9EF",
+          "#D6DBE3",
+          "#E8EAED",
+          "#8B919E",
+          "#4A4F5A",
+          "#1D2129",
+          "#000000"
+        ],
+        "usage": "白→浅灰为背景/卡片面；中灰为边框/分割线；深灰→黑为文字/按钮填充"
+      },
+      "semantic": {
+        "success": "#0CBF5B",
+        "success_chart": "#29C770",
+        "warning": "#FF7800",
+        "error": "#F64041",
+        "error_chart": "#E85C5C",
+        "info": "#1664FF",
+        "link": "#0052D9"
+      },
+      "surface": {
+        "background": "#F2F4F8",
+        "card": "#FFFFFF",
+        "elevated": "#FFFFFF",
+        "table_header": "rgba(242,244,248,0.6)",
+        "editor_output": "#FCFCFD",
+        "canvas_grid": "#E8EBF0"
+      },
+      "contrast_strategy": "dark-on-light dominant，文字使用黑色透明度四级分层：0.9/0.7/0.5/0.3",
+      "text": {
+        "primary": "rgba(0,0,0,0.9)",
+        "secondary": "rgba(0,0,0,0.7)",
+        "tertiary": "rgba(0,0,0,0.5)",
+        "disabled": "rgba(0,0,0,0.3)",
+        "solid": "#000000",
+        "inverse": "rgba(255,255,255,0.9)"
+      },
+      "brand_scale": {
+        "brand_01": "#EDFEFF",
+        "brand_02": "#D9F9FB",
+        "brand_03": "#C6F4F7",
+        "brand_04": "#A0EDF2",
+        "brand_05": "#71E3EB",
+        "brand_06": "#48D4E0",
+        "brand_07_base": "#00C8D6",
+        "brand_08": "#00B6C3",
+        "brand_09": "#259DA8",
+        "brand_10": "#2A7C85"
+      },
+      "agent_name_colors": {
+        "rigel": "#2873FF",
+        "vega": "#00BBA2",
+        "orion": "#CC6B3A",
+        "nova": "#934BFF"
+      },
+      "interactive": {
+        "hover_item": "#ECEEF2",
+        "hover_active": "#E1E5ED",
+        "hover_subtle": "rgba(0,0,0,0.03)",
+        "hover_icon_btn": "rgba(0,0,0,0.05)",
+        "chip_bg": "#dcf3fa",
+        "chip_gradient": "rgba(230,233,240,0.6)",
+        "user_bubble_bg": "#EDF0F5",
+        "confirmation_card_bg": "#FFF8F0",
+        "card_header_bg": "#F7F8FB",
+        "artifact_icon_bg": "#F5EDE0"
+      },
+      "border": {
+        "primary": "#E6E9EF",
+        "secondary": "#E9ECF1",
+        "tertiary": "#D6DBE3",
+        "active_cell": "#BCC4D0",
+        "outline_btn": "#E9EBF0",
+        "ai_entry": "#BCEFEC",
+        "divider": "#E8EAED",
+        "switch_off": "#D6DBE3"
+      },
+      "code_syntax": {
+        "keyword": "#0E2CEB",
+        "identifier": "rgba(0,0,0,0.9)",
+        "column_ref": "#B111D1",
+        "string": "#D6391A",
+        "variable": "#0F7A5E"
+      },
+      "chart": {
+        "success": "#29C770",
+        "error": "#E85C5C",
+        "neutral": "#BCC4D0",
+        "bar_radius": "2px",
+        "bar_width": "17.5px",
+        "bar_gap": "6px",
+        "progress_bar_height": "4px",
+        "progress_bar_radius": "1px"
+      },
+      "button": {
+        "filled_default": "rgba(0,0,0,0.75)",
+        "filled_hover": "rgba(0,0,0,0.65)",
+        "filled_active": "rgba(0,0,0,0.6)",
+        "filled_disabled": "rgba(0,0,0,0.2)",
+        "outline_default": "linear-gradient(to bottom, #FAFBFC, #F2F4F7)",
+        "outline_hover": "linear-gradient(to bottom, #F2F4F7, #E9EBF0)",
+        "outline_border": "#E9EBF0"
+      },
+      "gradients": {
+        "logo": "linear-gradient(134.68deg, #8AFFF5 12.79%, #3AC3FF 90.59%)",
+        "card_inner_border": "linear-gradient(to bottom, #E6E9EF, #FFFFFF)",
+        "input_glow": "conic-gradient(from var(--angle, 0deg), #DDDDFD, #A8DCF2, #F2CEB8, #C7E9E5, #DDDDFD)",
+        "ai_entry_default": "linear-gradient(180deg, #FFFFFF 50%, #F2F6FC 100%) + teal/orange corner glows",
+        "ai_entry_hover": "linear-gradient(180deg, #F5F7FA 50%, #EDF0F5 100%) + stronger teal wash"
+      }
+    },
+
+    "typography": {
+      "type_scale": {
+        "display": {
+          "size": "36px",
+          "weight": "600",
+          "line_height": "44px",
+          "tracking": "0",
+          "_source": "TDesign display-sm: 36px/44px/600"
+        },
+        "heading_1": {
+          "size": "32px",
+          "weight": "600",
+          "line_height": "40px",
+          "tracking": "0"
+        },
+        "heading_2": {
+          "size": "24px",
+          "weight": "600",
+          "line_height": "32px",
+          "tracking": "0"
+        },
+        "heading_3": {
+          "size": "18px",
+          "weight": "500",
+          "line_height": "26px",
+          "tracking": "0"
+        },
+        "body": {
+          "size": "14px",
+          "weight": "400",
+          "line_height": "22px",
+          "tracking": "0"
+        },
+        "body_small": {
+          "size": "12px",
+          "weight": "400",
+          "line_height": "20px",
+          "tracking": "0"
+        },
+        "caption": {
+          "size": "11px",
+          "weight": "400",
+          "line_height": "18px",
+          "tracking": "0"
+        },
+        "overline": {
+          "size": "10px",
+          "weight": "500",
+          "line_height": "16px",
+          "tracking": "0.5px"
+        }
+      },
+      "font_families": {
+        "heading": "'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        "body": "'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        "mono": "'JetBrains Mono NL', Consolas, 'Courier New', monospace",
+        "mono_badge": "'Hack', monospace",
+        "accent": "var(--font-pixelify-sans), 'Pixelify Sans', sans-serif",
+        "technical": "'SF Pro Text', -apple-system, sans-serif"
+      },
+      "font_style_notes": "基于 TDesign (tea-design) 字体系统。系统字体栈：-apple-system, BlinkMacSystemFont, pingfang SC, ...。TDesign 定义 medium=600，但 Figma 组件中 PingFang SC:Medium 实际渲染为 500。标题用 600 字重，正文 400。Agent 名称用 Pixelify Sans 像素风点缀。按钮统一 14px/500(PingFang SC Medium)。对话页面正文 16px 使用 28px 行高(1.75比率)，优化中文长文本阅读体验。字号体系极为克制：对话中仅用 16px(主体) / 14px(次要) / 12px(标签) 三级。TDesign 字号阶梯：12/13/14/16/18/20/24/28/32/36/38/40/42px。"
+    },
+
+    "spacing": {
+      "base_unit": "4px",
+      "scale": [4, 8, 12, 16, 20, 24, 32],
+      "content_density": "comfortable",
+      "section_rhythm": "核心间距为 16-24px；卡片与容器之间 24px；紧凑组件内部 4-8px；面板之间用 20px gutter"
+    },
+
+    "layout": {
+      "grid_system": "flex-based panel layout, not strict CSS Grid",
+      "max_content_width": "880px (对话页) / full-width (功能页)",
+      "columns": "flexible, sidebar + main content",
+      "gutter": "20px",
+      "breakpoints": "未定义（当前仅桌面端）",
+      "alignment_tendency": "centered content for conversation, panel-split for workspace",
+      "panel_widths": {
+        "nav_rail": "48px",
+        "file_tree": "280px",
+        "sidebar_nav": "224px",
+        "properties_panel": "360px",
+        "config_rail": "48px"
+      },
+      "fixed_heights": {
+        "header": "84px",
+        "toolbar": "48px",
+        "tab_bar": "48px",
+        "tab_bar_underline": "44px"
+      }
+    },
+
+    "shape": {
+      "border_radius": {
+        "micro": "2px",
+        "badge": "3px",
+        "small": "4px",
+        "medium": "8px",
+        "cell": "12px",
+        "large": "16px",
+        "pill": "100px"
+      },
+      "border_usage": "subtle 1px 分层体系：#E6E9EF(面板边框) > #E9ECF1(表格/分割) > #E8EAED(内容分割)。活跃单元格 1.5px #BCC4D0。按钮 outline 用 #E9EBF0。",
+      "divider_style": "1px solid #E8EAED，垂直分割线高 16-20px。Tab 间分隔线高 28px。"
+    },
+
+    "elevation": {
+      "shadow_style": "soft diffused with negative spread",
+      "levels": {
+        "low": "0 2px 4px -2px rgba(0,0,0,0.12)",
+        "medium": "0px 4px 16px 0px rgba(0,0,0,0.06)",
+        "high": "0 80px 160px rgba(0,0,0,0.22), 0 32px 64px rgba(0,0,0,0.14)"
+      },
+      "depth_cues": "shadows + overlapping layers",
+      "button_shadows": {
+        "filled": "0 2px 4px -2px rgba(0,0,0,0.20)",
+        "outline": "0 2px 4px -2px rgba(0,0,0,0.12)"
+      },
+      "tab_shadows": {
+        "active_pill": "0 3px 6px -3px rgba(0,0,0,0.08), 0 6px 12px -6px rgba(0,0,0,0.04)",
+        "container_inset": "inset 0 2px 2px 0 rgba(0,0,0,0.03)"
+      }
+    },
+
+    "iconography": {
+      "style": "line / outlined, monochrome",
+      "stroke_weight": "1.5px",
+      "size_scale": [14, 16, 20, 24],
+      "preferred_set": "lucide-react + WeData 自定义图标（IconCatalog, IconWorkflow, IconSQL, IconOps, IconMLExp 等）"
+    },
+
+    "motion": {
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "easing_variants": {
+        "standard": "[0.4, 0, 0.2, 1]",
+        "silk": "[0.2, 0.0, 0, 1.0]",
+        "shrink": "[0.23, 0.65, 0.25, 1]",
+        "reveal": "[0.22, 0.61, 0.36, 1]",
+        "bubble": "[0.23, 0.64, 0.22, 1]"
+      },
+      "duration_scale": {
+        "micro": "100ms",
+        "normal": "200ms",
+        "macro": "350ms"
+      },
+      "entrance_pattern": "fade-in + slide-up 8px",
+      "exit_pattern": "fade-out",
+      "philosophy": "minimal functional — 克制、无弹簧/旋转装饰动效。进行中图标用匀速旋转(2-3s/圈)。"
+    },
+
+    "components": {
+      "button_style": "pill 形按钮(radius 100px)。两种颜色：填充(半透明黑 0.75→0.65→0.6)和描边(渐变灰底 #FAFBFC→#F2F4F7 + 1px #E9EBF0)。两种尺寸：Large 44px / Small 32px。字体 14px/500。支持 split button(主操作+下拉)、多操作组合、图标按钮。Loading 用旋转图标替代文字。",
+      "input_style": "pill 搜索框(radius 100px, h44, 渐变灰底)。Chat 输入框 radius 24px，白底，激活态 conic-gradient 彩色边框。Select 组件共享 pill 形态。",
+      "card_style": "标准卡片：白底(#FFF)，radius 16px，border 1.5px #E9ECF1，无阴影。Agent名片卡：白底，radius 24px，border 1px #E6E9EF，shadow 0 4px 16px rgba(0,0,0,0.06)。任务卡header bg #F7F8FB h44 + ✦图标 + 14px/600进度文字。确认卡暖色底(#FFF8F0)。",
+      "table_style": {
+        "header": "h48, bg #F7F8FB (--color/bg/primary/lighten), text 12px/500 rgba(0,0,0,0.7), padding 16px 10px",
+        "row": "h36(紧凑)/h48(宽松), bg white, text 12-14px/400, border-bottom 1px #E9ECF1",
+        "row_number": "w45, text rgba(0,0,0,0.5)",
+        "column_divider": "1px #E6E9EF (--color/border/primary/default), h20",
+        "cell_padding": "16px",
+        "no_striping": true,
+        "sort_icon": "14px inline after header text"
+      },
+      "tab_style": {
+        "pill_tab": "radius 100px, container bg #F2F4F8 + padding 2px + inset shadow(inset 0 2px 2px rgba(0,0,0,0.03)), active: white(0.9) bg + shadow(0 3px 6px -3px rgba(0,0,0,0.08), 0 6px 12px -6px rgba(0,0,0,0.04)) + 14px/600 #000, inactive: 14px/400 rgba(0,0,0,0.7), h40, tab-padding 16px 10px",
+        "underline_tab": "h32, active 2px #00C8D6 (品牌teal) bottom border + 14px/500 rgba(0,0,0,0.9), inactive 14px/500 rgba(0,0,0,0.7), tab-gap 24px, pt 4px",
+        "studio_tab": "h84, active pill bg gradient white→#FAFBFC + shadow, badge NB/SQL/PY in Hack Bold"
+      },
+      "tree_style": {
+        "panel_width": "280px",
+        "item_height": "32px",
+        "indent_step": "24px",
+        "text": "12px/400, selected 12px/600 #000",
+        "selected_bg": "#F2F4F8 on inner content only",
+        "icon": "16px, caret 16px"
+      },
+      "nav_rail": {
+        "width": "48px",
+        "icon_container": "32px, radius 16px",
+        "icon": "16px",
+        "active_bg": "#F2F4F8",
+        "gap": "4px"
+      },
+      "toggle_switch": {
+        "size": "36x20px",
+        "radius": "100px",
+        "track_off": "#D6DBE3",
+        "dot": "16px white"
+      },
+      "pagination": {
+        "height": "56px",
+        "border_top": "1px #E9ECF1",
+        "page_btn": "24px, radius 3px",
+        "page_size_select": "88px, radius 3px"
+      },
+      "properties_panel": {
+        "width": "360px",
+        "label_width": "80px",
+        "label_text": "12px/400 rgba(0,0,0,0.7)",
+        "value_text": "12px/400 #000",
+        "section_header": "48px, 14px/500, chevron toggle"
+      },
+      "navigation_pattern": "固定左侧栏 224px(主导航) / 48px(二级 nav rail)。折叠态 64px。分层菜单。功能页：nav_rail + file_tree + content + optional properties_panel。",
+      "modal_style": "未在组件库中定义（待补充）",
+      "list_style": "紧凑列表 padding 12px 16px，hover 背景变化。",
+      "notebook_cell": {
+        "border": "1.5px #BCC4D0, radius 12px",
+        "action_bar": "h64, p16, white bg",
+        "run_button": "pill dark bg rgba(0,0,0,0.75) split button",
+        "output_bg": "#FCFCFD",
+        "code_font": "JetBrains Mono NL 14px",
+        "separator": "dashed line + add buttons"
+      },
+      "component_notes": "功能页使用 glass-morphism pill 统一语言：所有工具栏控件共享 pill 形(100px radius) + 渐变灰底(#FAFBFC→#F2F4F7) + 1px #E9EBF0 border + 0 2px 4px -2px shadow。AI 入口按钮有独特多层渐变(teal+orange 角光)。状态徽章为 icon+text 内联形式(无容器背景)。"
+    }
+  },
+
+  "design_style": {
+    "aesthetic": {
+      "mood": ["professional", "calm", "warm-minimal", "trustworthy", "focused"],
+      "visual_metaphor": "值得信赖的 AI 助手 — 像一位高效的专业同事，安静地完成工作后清晰汇报结果，等待你的决策",
+      "era_influence": "2024-2025 enterprise SaaS, post-flat design with subtle depth and warm undertones",
+      "genre": "enterprise data platform SaaS + AI conversation interface",
+      "personality_traits": ["meticulous", "reliable", "intelligent", "approachable", "competent"],
+      "adjectives": ["clean", "structured", "warm-neutral", "purposeful", "restrained"]
+    },
+    "visual_language": {
+      "complexity": "moderate — 信息密度高但视觉噪音极低。对话页面极其克制，几乎单色灰阶+一个蓝色强调",
+      "ornamentation": "near-zero — 对话流中零装饰元素，仅输入框激活态和 AI 入口有渐变点缀",
+      "whitespace_usage": "generous-centered — 880px 内容在 1696px 视口中仅占 52%，两侧大量留白聚焦注意力。垂直方向 24-36px 节奏感清晰",
+      "visual_weight_distribution": "center-column dominant — 对话页面无侧栏，单列居中；工作台页面侧栏+居中主内容",
+      "focal_strategy": "progressive reveal — 任务列表默认折叠(6/6)，产出物卡片摘要展示，确认卡用暖色底区分。注意力自然从对话流→任务进度→产出物→决策按钮",
+      "contrast_level": "medium-low — 黑色透明度文字四级分层(0.9→0.7→0.5→0.3)。不使用语义色标记完成状态(✓用灰色非绿色)，保持调色板统一",
+      "texture_usage": "minimal — 确认卡用极淡暖色底(~#FFF8F0)，产出物图标用暖沙色底(beige)。整体纹理接近纸质感"
+    },
+    "composition": {
+      "hierarchy_method": "weight-and-opacity driven — 同一字号(16px/14px)内通过字重(400→500→600)和透明度(0.3→0.9)建立层次，而非字号差异",
+      "balance_type": "centered single-column for conversation, asymmetric sidebar+content for workspace",
+      "flow_direction": "top-to-bottom conversational flow：标题栏 → 对话消息 → 任务进度卡 → 产出物卡片 → 确认决策 → 底部输入",
+      "grouping_strategy": "card-based grouping — 任务进度用带边框卡片，产出物用图标卡片(1大+3小网格)，确认区用暖色底分离",
+      "negative_space_role": "primary structural element — 留白是最强的分组和聚焦手段，替代线条和边框的分隔功能"
+    },
+    "imagery": {
+      "photo_treatment": "不使用照片",
+      "illustration_style": "品牌吉祥物海獭(otter)插画作为 Agent 头像，圆润温暖的艺术风格。功能入口用 isometric/3D 风格 teal 单色插画",
+      "graphic_elements": "Agent 头像插画(32px圆形)、产出物图标(56px圆角矩形+暖沙色底)、AI 星光图标(✦)、品牌 logo 渐变",
+      "pattern_usage": "none — 无重复图案",
+      "image_shape": "circular for avatars, rounded rectangle for artifact icons"
+    },
+    "interaction_feel": {
+      "feedback_style": "subtle background transitions — hover 变色、阴影升降。完成态用灰色 ✓ 而非绿色，保持克制",
+      "hover_behavior": "background tint darkening (按钮渐变加深) + shadow elevation。不使用 scale/transform hover",
+      "transition_personality": "smooth glide — cubic-bezier(0.4,0,0.2,1)，无弹跳。视图切换用 0.58s 缩放+模糊复合过渡",
+      "loading_style": "spinning icon (线性匀速旋转 2-3s/圈) + shimmer placeholder text。任务执行中用 ✦ 星光图标+旋转暗示 AI 处理",
+      "microinteraction_density": "low — 仅在关键决策点有动效：输入框激活(彩色边框)、卡片展开/折叠、视图切换。对话流中无额外动效"
+    },
+    "brand_voice_in_ui": {
+      "tone": "专业且温暖，带轻微科技感。AI 以第一人称汇报工作('分析了你的需求'、'识别出以下关键故障代码')",
+      "formality": "semi-formal — 用'你'而非'您'，措辞简洁专业。确认提示明确但不施压",
+      "cta_style": "clear binary choice — 蓝色主按钮'完成验证并发布' + 灰色次按钮'暂不发布'，并排左对齐",
+      "empty_state_approach": "品牌吉祥物插画 + 引导文案，如 'WeData 专家团随时待命'",
+      "error_tone": "温和告知，不使用感叹号或恐吓性语言"
+    },
+    "page_patterns": {
+      "conversation_page": {
+        "structure": "title_bar(84px) → scrollable_messages(flex-1) → pinned_input(bottom-32px)",
+        "user_bubble": "右对齐，#EDF0F5 背景，不对称圆角(tl:16/tr:2/br:16/bl:16 — 右上角2px靠近用户头像)，padding 16px 12px，text-justify",
+        "ai_response": "无气泡包裹，直接渲染在页面背景上",
+        "task_card": "白底+1.5px #E9ECF1 边框+16px圆角，头部浅灰(#F7F8FB)含 ✦ 图标+进度计数",
+        "artifact_card": "56px 暖沙色图标 + 标题+描述，3列网格排列",
+        "confirmation_card": "暖色底(~#FFF8F0)，蓝色主CTA + 灰色次按钮",
+        "bottom_gradient_fade": "80px 高，从透明→页面背景色，暗示可滚动"
+      }
+    }
+  },
+
+  "visual_effects": {
+    "overview": {
+      "effect_intensity": "subtle-accent",
+      "performance_tier": "lightweight",
+      "fallback_strategy": "reduce to CSS — 通过 prefers-reduced-motion 降级为无动画",
+      "primary_technology": "CSS animations + framer-motion"
+    },
+    "background_effects": {
+      "type": "none",
+      "description": "纯色/渐变背景，无动态背景效果",
+      "technology": "CSS",
+      "params": {
+        "color_palette": ["#F2F4F8", "#FFFFFF"],
+        "speed": "n/a",
+        "density": "n/a",
+        "opacity": "1",
+        "blend_mode": "normal"
+      }
+    },
+    "particle_systems": {
+      "enabled": false,
+      "type": "none",
+      "description": "无粒子系统",
+      "technology": "n/a",
+      "params": {}
+    },
+    "3d_elements": {
+      "enabled": false,
+      "type": "none",
+      "description": "无 3D 元素",
+      "technology": "n/a",
+      "params": {}
+    },
+    "shader_effects": {
+      "enabled": false,
+      "type": "none",
+      "description": "无着色器效果",
+      "technology": "n/a",
+      "params": {}
+    },
+    "scroll_effects": {
+      "parallax": {
+        "enabled": false,
+        "layers": 0,
+        "depth_range": "n/a",
+        "speed_curve": "n/a"
+      },
+      "scroll_triggered_animations": {
+        "enabled": false,
+        "trigger_points": "n/a",
+        "animation_type": "n/a",
+        "scrub_behavior": "n/a"
+      },
+      "scroll_morphing": {
+        "enabled": false,
+        "description": "无滚动变形效果"
+      }
+    },
+    "text_effects": {
+      "type": "gradient-fill",
+      "description": "输入框 placeholder 使用 shimmer 扫光效果 — 渐变文字从左到右循环移动",
+      "technology": "CSS background-clip: text + @keyframes shimmer",
+      "params": {
+        "split_strategy": "none (whole text)",
+        "animation_per_unit": "n/a",
+        "stagger": "n/a",
+        "effect_style": "linear-gradient(110deg, #bbb 35%, #fff 50%, #bbb 75%) background-size:200% animation:5s linear infinite"
+      }
+    },
+    "cursor_effects": {
+      "enabled": false,
+      "type": "none",
+      "description": "无自定义光标效果",
+      "params": {}
+    },
+    "image_effects": {
+      "type": "none",
+      "description": "无图片特效",
+      "technology": "n/a",
+      "params": {}
+    },
+    "glassmorphism_neumorphism": {
+      "enabled": true,
+      "style": "frosted-layers",
+      "params": {
+        "blur_radius": "20px",
+        "transparency": "backdrop-filter: blur(20px) saturate(60%)",
+        "border_treatment": "subtle gradient border",
+        "shadow_type": "soft diffused",
+        "light_source_angle": "top"
+      }
+    },
+    "canvas_drawings": {
+      "enabled": false,
+      "type": "none",
+      "description": "无 Canvas 绘制",
+      "technology": "n/a",
+      "params": {}
+    },
+    "svg_animations": {
+      "enabled": false,
+      "type": "none",
+      "description": "无 SVG 动画",
+      "params": {}
+    },
+    "composite_notes": "核心视觉特效集中在输入框交互：(1) conic-gradient 彩色流动边框，4s 匀速旋转；(2) 弥散投影层用相同渐变 blur(18-26px) 呼吸动画；(3) placeholder shimmer 扫光。AI 气泡有 aurora-spin 旋转边框效果。DataClaw→Studio 视图切换有单段缩放+模糊+透明度复合过渡(0.58s)。所有效果均为 CSS + framer-motion，无 Canvas/WebGL 依赖。"
+  }
+}

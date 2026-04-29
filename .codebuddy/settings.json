@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "code-simplifier@codebuddy-plugins-official": true,
+    "claude-mem@thedotmack": true,
+    "code-simplifier@claude-plugins-official": true
+  }
+}

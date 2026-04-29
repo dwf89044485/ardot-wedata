@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>配送时效异动洞察</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root {
+  --c-brand: #4F46E5;
+  --c-brand-light: #EEF2FF;
+  --c-danger: #DC2626;
+  --c-danger-bg: #FEF2F2;
+  --c-danger-light: #FECACA;
+  --c-warn: #D97706;
+  --c-warn-bg: #FFFBEB;
+  --c-warn-light: #FDE68A;
+  --c-ok: #059669;
+  --c-ok-bg: #ECFDF5;
+  --c-ok-light: #A7F3D0;
+  --c-info: #2563EB;
+  --c-info-bg: #EFF6FF;
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --text-h: #0F172A;
+  --text-p: #334155;
+  --text-m: #94A3B8;
+  --border: #E2E8F0;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --radius: 16px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg-page); color: var(--text-p); line-height: 1.6; padding: 24px; -webkit-font-smoothing: antialiased; }
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* ── Header ── */
+.report-header { text-align: center; margin-bottom: 32px; padding: 32px 0 24px; }
+.report-header h1 { font-size: 28px; font-weight: 800; color: var(--text-h); letter-spacing: -0.02em; }
+.report-header .subtitle { color: var(--text-m); font-size: 13px; margin-top: 6px; }
+.report-header .severity-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 6px 16px; border-radius: 100px; font-size: 13px; font-weight: 600; background: var(--c-danger-bg); color: var(--c-danger); border: 1px solid var(--c-danger-light); }
+
+/* ── KPI ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+.kpi-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px 24px; box-shadow: var(--shadow-md); border: 1px solid var(--border); position: relative; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.kpi-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.kpi-card.danger::before { background: var(--c-danger); }
+.kpi-card.warn::before { background: var(--c-warn); }
+.kpi-card.ok::before { background: var(--c-ok); }
+.kpi-label { font-size: 12px; color: var(--text-m); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.kpi-card.danger .kpi-value { color: var(--c-danger); }
+.kpi-card.warn .kpi-value { color: var(--c-warn); }
+.kpi-card.ok .kpi-value { color: var(--c-ok); }
+.kpi-sub { font-size: 12px; color: var(--text-m); margin-top: 6px; }
+.kpi-sub .tag { display: inline-block; padding: 1px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+.kpi-sub .tag.danger { background: var(--c-danger-bg); color: var(--c-danger); }
+.kpi-sub .tag.warn { background: var(--c-warn-bg); color: var(--c-warn); }
+
+/* ── Section ── */
+.section { background: var(--bg-card); border-radius: var(--radius); padding: 28px; margin-bottom: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.section h2 { font-size: 18px; font-weight: 700; color: var(--text-h); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+.section h2 .num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--c-brand); color: white; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+
+/* ── Insight (重构: 结论 + 数据 + 行动) ── */
+.insight { border-radius: 12px; margin: 16px 0; overflow: hidden; }
+.insight-inner { padding: 16px 20px; }
+.insight-danger { background: var(--c-danger-bg); border: 1px solid var(--c-danger-light); }
+.insight-warn { background: var(--c-warn-bg); border: 1px solid var(--c-warn-light); }
+.insight-info { background: var(--c-info-bg); border: 1px solid #BFDBFE; }
+.insight-conclusion { font-weight: 700; font-size: 14px; color: var(--text-h); margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
+.insight-conclusion .icon { flex-shrink: 0; margin-top: 1px; }
+.insight-danger .insight-conclusion .icon { color: var(--c-danger); }
+.insight-warn .insight-conclusion .icon { color: var(--c-warn); }
+.insight-info .insight-conclusion .icon { color: var(--c-info); }
+.insight-body { font-size: 13px; line-height: 1.8; color: var(--text-p); }
+.insight-body .data-row { display: flex; gap: 20px; flex-wrap: wrap; margin: 8px 0; }
+.insight-body .data-item { display: flex; align-items: baseline; gap: 4px; }
+.insight-body .data-label { color: var(--text-m); font-size: 12px; }
+.insight-body .data-val { font-weight: 700; font-size: 14px; }
+.insight-body .data-val.danger { color: var(--c-danger); }
+.insight-body .data-val.warn { color: var(--c-warn); }
+.insight-body .action { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--text-m); }
+.insight-body .action strong { color: var(--c-brand); }
+
+/* ── Suggest ── */
+.suggest { background: var(--c-ok-bg); border: 1px solid var(--c-ok-light); border-radius: 12px; padding: 20px; margin: 16px 0; }
+.suggest-title { font-weight: 700; font-size: 15px; color: var(--c-ok); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.suggest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.suggest-item { background: white; border-radius: 10px; padding: 14px 16px; border: 1px solid #D1FAE5; }
+.suggest-item .priority { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+.suggest-item .priority.p0 { background: var(--c-danger-bg); color: var(--c-danger); }
+.suggest-item .priority.p1 { background: var(--c-warn-bg); color: var(--c-warn); }
+.suggest-item .priority.p2 { background: var(--c-info-bg); color: var(--c-info); }
+.suggest-item .priority.p3 { background: #F1F5F9; color: #64748B; }
+.suggest-item h4 { font-size: 13px; font-weight: 700; color: var(--text-h); margin-bottom: 4px; }
+.suggest-item p { font-size: 12px; color: var(--text-m); line-height: 1.6; }
+
+/* ── Table ── */
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+th { background: #F8FAFC; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-m); text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 2px solid var(--border); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+tr:hover td { background: #F8FAFC; }
+.severity-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.severity-dot.red { background: var(--c-danger); box-shadow: 0 0 0 3px var(--c-danger-bg); }
+.severity-dot.yellow { background: var(--c-warn); box-shadow: 0 0 0 3px var(--c-warn-bg); }
+.bar-cell { position: relative; }
+.bar-cell .bar { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 6px; border-radius: 3px; opacity: 0.2; }
+.bar-cell .bar.danger { background: var(--c-danger); }
+.bar-cell .bar.warn { background: var(--c-warn); }
+td.bold { font-weight: 700; color: var(--text-h); }
+td.danger { color: var(--c-danger); font-weight: 600; }
+td.warn { color: var(--c-warn); font-weight: 600; }
+
+/* ── SQL ── */
+.sql-toggle { background: #F1F5F9; color: var(--c-brand); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 500; margin: 8px 0; transition: background 0.15s; }
+.sql-toggle:hover { background: #E2E8F0; }
+.sql-block { display: none; background: #1E293B; color: #94A3B8; padding: 14px 18px; border-radius: 10px; font-size: 11px; font-family: "JetBrains Mono", "Fira Code", monospace; overflow-x: auto; white-space: pre; margin: 8px 0; line-height: 1.7; }
+
+/* ── Grid ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+/* ── Export ── */
+.export-toolbar { position: fixed; top: 16px; right: 20px; z-index: 9999; display: flex; gap: 8px; }
+.export-btn { background: var(--c-brand); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: opacity 0.15s; }
+.export-btn:hover { opacity: 0.9; }
+
+/* ── Alert section header ── */
+.alert-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.alert-header h3 { font-size: 14px; font-weight: 700; color: var(--text-h); }
+.alert-header .count { font-size: 12px; color: var(--text-m); background: #F1F5F9; padding: 3px 10px; border-radius: 100px; }
+
+/* ── Responsive ── */
+@media(max-width:768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .grid-2 { grid-template-columns: 1fr; } .suggest-grid { grid-template-columns: 1fr; } }
+@media print { .sql-toggle, .sql-block, .export-toolbar { display: none!important; } body { background: white!important; } }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+
+<div class="export-toolbar">
+  <button class="export-btn" onclick="window.print()">导出 PDF</button>
+  <button class="export-btn" onclick="exportDocx()">导出 DOCX</button>
+</div>
+
+<div class="container">
+
+<!-- ═══ Header ═══ -->
+<div class="report-header">
+  <h1>配送时效异动洞察</h1>
+  <p class="subtitle">数据来源：dataclaw_donot_delete.olist_ods &nbsp;|&nbsp; 已配送订单</p>
+  <div class="severity-badge">
+    <span>&#9888;</span> 23/27 州配送超 15 天 &nbsp;|&nbsp; 整体严重
+  </div>
+</div>
+
+<!-- ═══ KPI ═══ -->
+<div class="kpi-grid" data-capture="kpi">
+  <div class="kpi-card danger">
+    <div class="kpi-label">平均配送时效</div>
+    <div class="kpi-value">18.8 天</div>
+    <div class="kpi-sub"><span class="tag danger">超标 3.8 天</span> &nbsp;阈值 15 天</div>
+  </div>
+  <div class="kpi-card danger">
+    <div class="kpi-label">运输阶段占比</div>
+    <div class="kpi-value">82%</div>
+    <div class="kpi-sub"><span class="tag danger">主因</span> &nbsp;运输 15.5d / 发货 2.8d = 5.5x</div>
+  </div>
+  <div class="kpi-card warn">
+    <div class="kpi-label">超 15 天的州</div>
+    <div class="kpi-value">23/27</div>
+    <div class="kpi-sub"><span class="tag warn">85% 州超标</span> &nbsp;全局性瓶颈</div>
+  </div>
+  <div class="kpi-card warn">
+    <div class="kpi-label">准时率 &lt; 80% 卖家</div>
+    <div class="kpi-value">44 家</div>
+    <div class="kpi-sub"><span class="tag warn">3.6% 卖家</span> &nbsp;高投诉风险群体</div>
+  </div>
+</div>
+
+<!-- ═══ 1. 归因分析 ═══ -->
+<div class="section">
+  <h2><span class="num">1</span>归因分析：配送慢的根因</h2>
+  <div data-capture="chart1">
+    <div id="chart1" style="height:420px;width:100%"></div>
+  </div>
+  <div class="insight insight-danger">
+    <div class="insight-inner">
+      <div class="insight-conclusion"><span class="icon">&#9888;</span>运输阶段是配送慢的绝对主因，贡献 82% 时效</div>
+      <div class="insight-body">
+        <div class="data-row">
+          <div class="data-item"><span class="data-label">审批</span><span class="data-val">0.6 天 (3%)</span></div>
+          <div class="data-item"><span class="data-label">卖家发货</span><span class="data-val">2.8 天 (15%)</span></div>
+          <div class="data-item"><span class="data-label">物流运输</span><span class="data-val danger">15.5 天 (82%)</span></div>
+        </div>
+        <div class="action"><strong>关键推论：</strong>运输 vs 发货差 5.5 倍，即使卖家发货优化到 0 天，总时效仍超 15 天阈值 — <strong>问题无法通过管理卖家解决，必须从运输网络层面优化</strong></div>
+      </div>
+    </div>
+  </div>
+  <button class="sql-toggle" onclick="toggleSQL('sql1')">查看 SQL</button>
+  <pre class="sql-block" id="sql1">-- SQL-1: 各州配送时效三段拆解
+SELECT cu.customer_state, COUNT(DISTINCT o.order_id) as orders,
+  AVG(DATEDIFF(CAST(o.order_delivered_customer_date AS DATE), CAST(o.order_purchase_timestamp AS DATE))) as avg_total_days,
+  AVG(DATEDIFF(CAST(o.order_approved_at AS DATE), CAST(o.order_purchase_timestamp AS DATE))) as avg_approval_days,
+  AVG(DATEDIFF(CAST(o.order_delivered_carrier_date AS DATE), CAST(o.order_approved_at AS DATE))) as avg_shipping_days,
+  AVG(DATEDIFF(CAST(o.order_delivered_customer_date AS DATE), CAST(o.order_delivered_carrier_date AS DATE))) as avg_transit_days
+FROM dataclaw_donot_delete.olist_ods.olist_orders_dataset o
+JOIN dataclaw_donot_delete.olist_ods.olist_customers_dataset cu ON o.customer_id = cu.customer_id
+WHERE o.order_status='delivered' AND o.order_delivered_customer_date IS NOT NULL ...</pre>
+</div>
+
+<!-- ═══ 2+3. 各州 + 卖家 ═══ -->
+<div class="grid-2">
+<div class="section">
+  <h2><span class="num">2</span>各州配送时效</h2>
+  <div data-capture="chart2">
+    <div id="chart2" style="height:620px;width:100%"></div>
+  </div>
+  <div class="insight insight-warn">
+    <div class="insight-inner">
+      <div class="insight-conclusion"><span class="icon">&#9888;</span>北部/东北部州配送严重超标，RR 达 29.7 天</div>
+      <div class="insight-body">
+        <div class="data-row">
+          <div class="data-item"><span class="data-label">最慢 RR</span><span class="data-val danger">29.7 天 (2.2&sigma;)</span></div>
+          <div class="data-item"><span class="data-label">最快 SP</span><span class="data-val">8.7 天 (-2.0&sigma;)</span></div>
+          <div class="data-item"><span class="data-label">差距</span><span class="data-val warn">3.4 倍</span></div>
+        </div>
+        <div class="action"><strong>判断：</strong>23/27 州超 15 天 — 配送慢是<strong>全局性物流网络瓶颈</strong>，非个别州问题</div>
+      </div>
+    </div>
+  </div>
+  <button class="sql-toggle" onclick="toggleSQL('sql2')">查看 SQL</button>
+  <pre class="sql-block" id="sql2">-- 同 SQL-1</pre>
+</div>
+
+<div class="section">
+  <h2><span class="num">3</span>卖家准时率分布</h2>
+  <div data-capture="chart4">
+    <div id="chart4" style="height:420px;width:100%"></div>
+  </div>
+  <div class="insight insight-info">
+    <div class="insight-inner">
+      <div class="insight-conclusion"><span class="icon">&#9432;</span>整体准时率 93.6% 尚可，但尾部 44 家卖家是高投诉风险</div>
+      <div class="insight-body">
+        <div class="data-row">
+          <div class="data-item"><span class="data-label">整体准时率</span><span class="data-val">93.6%</span></div>
+          <div class="data-item"><span class="data-label">异常卖家</span><span class="data-val warn">52 家 (&lt;80.5%)</span></div>
+          <div class="data-item"><span class="data-label">阈值命中</span><span class="data-val warn">44 家 (&lt;80%)</span></div>
+        </div>
+        <div class="action"><strong>验证：</strong>80% 告警阈值与统计异常高度吻合，是合理的告警线。低准时率卖家主因仍在运输环节</div>
+      </div>
+    </div>
+  </div>
+  <button class="sql-toggle" onclick="toggleSQL('sql3')">查看 SQL</button>
+  <pre class="sql-block" id="sql3">-- SQL-2: 各卖家配送时效
+SELECT oi.seller_id, se.seller_state, COUNT(DISTINCT o.order_id) as orders, ... 
+FROM dataclaw_donot_delete.olist_ods.olist_orders_dataset o
+JOIN dataclaw_donot_delete.olist_ods.oi_data oi ON o.order_id = oi.order_id
+JOIN dataclaw_donot_delete.olist_ods.olist_sellers_dataset se ON oi.seller_id = se.seller_id
+WHERE ... GROUP BY oi.seller_id, se.seller_state HAVING COUNT(DISTINCT o.order_id)>=10</pre>
+</div>
+</div>
+
+<!-- ═══ 4. 月度趋势 ═══ -->
+<div class="section">
+  <h2><span class="num">4</span>月度配送趋势</h2>
+  <div data-capture="chart3">
+    <div id="chart3" style="height:420px;width:100%"></div>
+  </div>
+  <div class="insight insight-info">
+    <div class="insight-inner">
+      <div class="insight-conclusion"><span class="icon">&#9432;</span>运输阶段始终是主要瓶颈，2017 年中后趋于稳定</div>
+      <div class="insight-body">
+        <div class="data-row">
+          <div class="data-item"><span class="data-label">2017 稳定期</span><span class="data-val">12-15 天</span></div>
+          <div class="data-item"><span class="data-label">2018 波动</span><span class="data-val warn">峰值 16.9 天</span></div>
+          <div class="data-item"><span class="data-label">2018 末</span><span class="data-val">降至 7.7 天</span></div>
+        </div>
+        <div class="action"><strong>注意：</strong>2016-09 的 55 天为早期数据（极少订单），不具参考性。运输曲线始终远高于发货曲线</div>
+      </div>
+    </div>
+  </div>
+  <button class="sql-toggle" onclick="toggleSQL('sql4')">查看 SQL</button>
+  <pre class="sql-block" id="sql4">-- SQL-3: 月度趋势
+SELECT DATE_FORMAT(o.order_purchase_timestamp,'yyyy-MM') as month, ... 
+FROM dataclaw_donot_delete.olist_ods.olist_orders_dataset o WHERE ...</pre>
+</div>
+
+<!-- ═══ 5. 告警名单 ═══ -->
+<div class="section">
+  <h2><span class="num">5</span>告警名单</h2>
+
+  <div class="alert-header">
+    <h3>州配送超 15 天（Top 10）</h3>
+    <span class="count">23/27 州超标</span>
+  </div>
+  <table id="table-alert-state">
+    <thead><tr><th></th><th>州</th><th>总配送</th><th>发货</th><th>运输</th><th>准时率</th><th>订单量</th><th>影响分</th></tr></thead>
+    <tbody>
+      <tr><td><span class="severity-dot red"></span></td><td class="bold">RR</td><td class="danger">29.7d</td><td>3.9d</td><td class="danger">25.3d</td><td>85.7%</td><td>28</td><td class="warn">414</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td class="bold">AP</td><td class="danger">28.3d</td><td>3.1d</td><td class="danger">24.7d</td><td>95.7%</td><td>47</td><td class="warn">625</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td class="bold">AM</td><td class="danger">25.5d</td><td>2.3d</td><td class="danger">22.7d</td><td>96.9%</td><td>97</td><td class="warn">1019</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">AL</td><td class="danger">24.6d</td><td>3.0d</td><td class="danger">21.2d</td><td class="danger">78.0%</td><td>287</td><td class="warn">2755</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">PA</td><td class="danger">24.0d</td><td>2.9d</td><td class="danger">20.5d</td><td>87.9%</td><td>663</td><td class="warn">5967</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">AC</td><td class="danger">22.0d</td><td>2.8d</td><td class="danger">18.4d</td><td>95.2%</td><td>62</td><td class="warn">434</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">SE</td><td class="danger">21.8d</td><td>3.0d</td><td class="danger">18.3d</td><td>84.5%</td><td>245</td><td class="warn">1666</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">MA</td><td class="danger">21.3d</td><td>2.8d</td><td class="danger">17.8d</td><td>81.3%</td><td>504</td><td class="warn">3175</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">CE</td><td class="danger">20.8d</td><td>2.7d</td><td class="danger">17.6d</td><td>87.0%</td><td>902</td><td class="warn">5232</td></tr>
+      <tr><td><span class="severity-dot yellow"></span></td><td class="bold">PB</td><td class="danger">20.3d</td><td>3.0d</td><td class="danger">16.8d</td><td>90.1%</td><td>364</td><td class="warn">1930</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert-header" style="margin-top: 20px;">
+    <h3>卖家准时率低于 80%（Top 10）</h3>
+    <span class="count">44 家超标</span>
+  </div>
+  <table id="table-alert-seller">
+    <thead><tr><th></th><th>卖家 ID</th><th>所在州</th><th>准时率</th><th>配送天数</th><th>订单量</th></tr></thead>
+    <tbody>
+      <tr><td><span class="severity-dot red"></span></td><td>b1b3948701c5...</td><td>SP</td><td class="danger">35.7%</td><td class="danger">23.4d</td><td>14</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>2709af958749...</td><td>SP</td><td class="danger">50.0%</td><td>12.7d</td><td>25</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>c37b2059d4f9...</td><td>SP</td><td class="danger">56.2%</td><td class="danger">19.9d</td><td>12</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>cb41bfbcbda0...</td><td>SP</td><td class="danger">63.6%</td><td class="danger">37.5d</td><td>11</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>26e2c91ef821...</td><td>SP</td><td class="danger">64.3%</td><td class="danger">24.8d</td><td>12</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>02dcd3e8e25b...</td><td>MG</td><td class="danger">66.7%</td><td class="danger">17.3d</td><td>13</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>54965bbe3e4f...</td><td>PR</td><td class="danger">67.9%</td><td class="danger">26.7d</td><td>73</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>821fb029fc6e...</td><td>SP</td><td class="danger">68.0%</td><td class="danger">16.3d</td><td>24</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>ede0c0364559...</td><td>SP</td><td class="danger">68.1%</td><td class="danger">18.3d</td><td>43</td></tr>
+      <tr><td><span class="severity-dot red"></span></td><td>ad781527c93d...</td><td>SP</td><td class="danger">68.4%</td><td class="danger">25.4d</td><td>38</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ 6. 监控配置建议 ═══ -->
+<div class="section">
+  <h2><span class="num">6</span>监控配置与行动建议</h2>
+
+  <div class="suggest">
+    <div class="suggest-title">&#9889; 监控规则</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:18px;">
+      <div><strong>监控指标</strong>：各州平均配送天数 + 各卖家准时率</div>
+      <div><strong>检测频率</strong>：每日</div>
+      <div><strong>检测方法</strong>：2&sigma; 动态阈值 + 固定阈值（州&gt;15d / 卖家&lt;80%）</div>
+      <div><strong>归因联动</strong>：异常时自动按 州 &times; 发货/运输 拆解</div>
+    </div>
+
+    <div class="suggest-title">&#9654; 行动建议</div>
+    <div class="suggest-grid">
+      <div class="suggest-item">
+        <span class="priority p0">P0 止血</span>
+        <h4>优化 RR/AP/AM 三州物流运输网络</h4>
+        <p>配送均超 25 天，运输占 85%+。建议引入区域物流合作伙伴或前置仓，目标运输从 20d+ 降至 12d 以内</p>
+      </div>
+      <div class="suggest-item">
+        <span class="priority p1">P1 增长</span>
+        <h4>44 家低准时率卖家整改计划</h4>
+        <p>设定 90 天改善期，准时率提升至 85% 以上，否则限流。3.6% 卖家但投诉占比远超此数</p>
+      </div>
+      <div class="suggest-item">
+        <span class="priority p2">P2 效率</span>
+        <h4>告警表每日调度自动刷新</h4>
+        <p>通过 WeData 工作流实现定时 ETL &rarr; 告警表更新，确保每天看到最新数据</p>
+      </div>
+      <div class="suggest-item">
+        <span class="priority p3">P3 结构</span>
+        <h4>长期重构物流网络</h4>
+        <p>82% 时间花在运输上，是结构性问题。建议评估在北部/东北部建设分拨中心的 ROI</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── Shared Plotly layout config ──
+var plotlyFont = {family: 'Inter, -apple-system, sans-serif', color: '#334155'};
+var plotlyGrid = {color: '#E2E8F0'};
+var plotlyBase = {
+  font: plotlyFont,
+  paper_bgcolor: 'white',
+  plot_bgcolor: 'white',
+  margin: {l: 60, r: 30, t: 40, b: 50},
+  xaxis: {gridcolor: plotlyGrid, linecolor: plotlyGrid, zerolinecolor: plotlyGrid},
+  yaxis: {gridcolor: plotlyGrid, linecolor: plotlyGrid, zerolinecolor: plotlyGrid},
+  legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: -0.15, font: {size: 12}},
+  hoverlabel: {font: {family: 'Inter, sans-serif', size: 13}}
+};
+</script>
+
+<!-- Chart 1: Waterfall -->
+<script>
+Plotly.newPlot("chart1", [{"connector": {"line": {"color": "#636EFA"}}, "decreasing": {"marker": {"color": "#636EFA"}}, "increasing": {"marker": {"color": "#636EFA"}}, "measure": ["relative", "relative", "relative", "total"], "text": ["0.6d (3%)", "2.8d (15%)", "15.5d (82%)", "18.8d"], "textposition": "outside", "totals": {"marker": {"color": "#EF553B"}}, "x": ["\u5ba1\u6279", "\u5356\u5bb6\u53d1\u8d27", "\u7269\u6d41\u8fd0\u8f93", "\u914d\u9001\u603b\u65f6\u6548"], "y": [0.6, 2.8, 15.5, 0], "type": "waterfall"}], Object.assign({}, plotlyBase, {
+  title: {text: '配送时效三段拆解', font: {size: 15, color: '#0F172A'}},
+  xaxis: {title: ''},
+  yaxis: {title: '天数', gridcolor: plotlyGrid},
+  margin: {l: 60, r: 30, t: 60, b: 50}
+}));
+</script>
+
+<!-- Chart 2: Horizontal Bar -->
+<script>
+Plotly.newPlot("chart2", [{"marker": {"color": "#636EFA"}, "name": "\u5356\u5bb6\u53d1\u8d27", "orientation": "h", "x": [2.6506409130816504, 2.7113902014424274, 2.6044495810459405, 2.7133243606998656, 2.7717791411042945, 2.592979635584137, 2.831553565277299, 2.498, 2.5624538063562454, 2.8329764453961457, 2.757425742574257, 2.500780031201248, 2.7526978417266186, 2.454810495626822, 2.061111111111111, 2.744773519163763, 3.199395770392749, 2.9532967032967035, 2.735033259423503, 2.7936507936507935, 2.9714285714285715, 2.8225806451612905, 2.927601809954751, 2.951219512195122, 2.329896907216495, 3.0851063829787235, 3.857142857142857], "y": ["SP", "MG", "PR", "DF", "SC", "RS", "RJ", "MS", "GO", "ES", "TO", "MT", "PE", "PI", "RO", "BA", "RN", "PB", "CE", "MA", "SE", "AC", "PA", "AL", "AM", "AP", "RR"], "type": "bar"}, {"marker": {"color": "#EF553B"}, "name": "\u7269\u6d41\u8fd0\u8f93", "orientation": "h", "x": [5.549499561018437, 8.724073613528972, 8.770875469517481, 9.759084791386272, 11.67116564417178, 11.910235798499464, 11.926053507865426, 12.218, 12.309682187730967, 12.403997144896502, 14.321782178217822, 14.88455538221529, 15.06474820143885, 15.947521865889213, 16.372222222222224, 16.097996515679444, 16.265861027190333, 16.752747252747252, 17.572062084257205, 17.833333333333332, 18.273469387755103, 18.43548387096774, 20.500754147812973, 21.153310104529616, 22.711340206185568, 24.72340425531915, 25.321428571428573], "y": ["SP", "MG", "PR", "DF", "SC", "RS", "RJ", "MS", "GO", "ES", "TO", "MT", "PE", "PI", "RO", "BA", "RN", "PB", "CE", "MA", "SE", "AC", "PA", "AL", "AM", "AP", "RR"], "type": "bar"}], Object.assign({}, plotlyBase, {
+  title: {text: '各州配送时效（发货 vs 运输）', font: {size: 15, color: '#0F172A'}},
+  barmode: 'stack',
+  xaxis: {title: '天数', gridcolor: plotlyGrid},
+  yaxis: {title: '', dtick: 1},
+  margin: {l: 40, r: 30, t: 60, b: 50},
+  shapes: [{
+    type: 'line', x0: 15, x1: 15, y0: -0.5, y1: 26.5,
+    line: {color: '#DC2626', width: 1.5, dash: 'dash'}
+  }],
+  annotations: [{
+    x: 15, y: 27, text: '15 天阈值', showarrow: false,
+    font: {color: '#DC2626', size: 11}
+  }]
+}));
+</script>
+
+<!-- Chart 4: Histogram -->
+<script>
+Plotly.newPlot("chart4", [{"marker": {"color": "#636EFA"}, "nbinsx": 20, "opacity": 0.7, "x": [35.71428571428571, 50.0, 56.25, 63.63636363636364, 64.28571428571429, 66.66666666666667, 67.90123456790123, 68.0, 68.08510638297872, 68.42105263157895, 68.42105263157895, 70.0, 70.58823529411765, 70.58823529411765, 70.83333333333333, 71.42857142857143, 72.22222222222221, 72.72727272727273, 72.72727272727273, 72.72727272727273, 72.72727272727273, 72.91666666666667, 73.33333333333333, 75.0, 75.0, 75.0, 75.0, 76.3157894736842, 76.47058823529412, 76.47058823529412, 76.92307692307692, 76.92307692307692, 76.92307692307692, 77.38095238095238, 77.41935483870968, 77.94117647058825, 78.37837837837839, 78.57142857142857, 78.57142857142857, 78.57142857142857, 78.84615384615385, 78.94736842105263, 79.16666666666667, 79.54545454545455, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.48780487804878, 80.55555555555556, 80.59701492537313, 80.76923076923077, 80.95238095238095, 80.95238095238095, 81.03448275862068, 81.25, 81.25, 81.70731707317073, 81.81818181818181, 81.81818181818181, 81.81818181818181, 81.81818181818181, 81.81818181818181, 81.81818181818181, 82.1705426356589, 82.22222222222221, 82.3529411764706, 82.3529411764706, 82.6086956521739, 82.85714285714286, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.33333333333333, 83.62573099415205, 83.66666666666667, 83.6734693877551, 83.72093023255815, 83.78378378378378, 83.87096774193547, 83.92857142857143, 84.21052631578947, 84.21052631578947, 84.21052631578947, 84.21052631578947, 84.21052631578947, 84.31372549019608, 84.31372549019608, 84.375, 84.61538461538461, 84.61538461538461, 84.61538461538461, 84.61538461538461, 84.84848484848484, 84.90566037735849, 85.0, 85.0, 85.03937007874016, 85.18518518518519, 85.18518518518519, 85.18518518518519, 85.26315789473684, 85.29411764705883, 85.45454545454545, 85.48387096774194, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.71428571428571, 85.91549295774648, 86.04651162790698, 86.20689655172414, 86.20689655172414, 86.20689655172414, 86.29032258064515, 86.36363636363636, 86.36363636363636, 86.48648648648648, 86.53846153846153, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.66666666666667, 86.8995633187773, 86.95652173913042, 86.95652173913042, 86.95652173913042, 86.95652173913042, 86.95652173913042, 87.17948717948718, 87.41721854304636, 87.45980707395498, 87.5, 87.5, 87.5, 87.5, 87.5, 87.5, 87.5, 87.5, 87.5, 87.5, 87.57396449704142, 87.75510204081633, 87.7906976744186, 87.8048780487805, 87.87878787878788, 87.87878787878788, 87.93103448275862, 88.0, 88.0, 88.0, 88.05970149253731, 88.0952380952381, 88.0952380952381, 88.13559322033898, 88.15789473684211, 88.18565400843882, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.23529411764706, 88.31168831168831, 88.31168831168831, 88.32116788321169, 88.3248730964467, 88.33333333333333, 88.37209302325581, 88.37209302325581, 88.4297520661157, 88.4297520661157, 88.46153846153847, 88.52459016393443, 88.57142857142857, 88.7218045112782, 88.73239436619718, 88.79159369527144, 88.86198547215496, 88.88888888888889, 88.88888888888889, 88.88888888888889, 88.88888888888889, 88.88888888888889, 89.01098901098901, 89.02439024390245, 89.1304347826087, 89.1304347826087, 89.1891891891892, 89.20454545454545, 89.2156862745098, 89.23076923076923, 89.28571428571429, 89.28571428571429, 89.28571428571429, 89.36170212765957, 89.36170212765957, 89.45993031358886, 89.47368421052632, 89.47368421052632, 89.47368421052632, 89.47368421052632, 89.47368421052632, 89.47368421052632, 89.55223880597015, 89.58333333333333, 89.6103896103896, 89.6265560165975, 89.6551724137931, 89.6551724137931, 89.6551724137931, 89.69072164948454, 89.70588235294117, 89.74358974358974, 89.74358974358974, 89.92248062015504, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0763358778626, 90.0990099009901, 90.21739130434784, 90.30271934325296, 90.38461538461539, 90.38461538461539, 90.47619047619048, 90.47619047619048, 90.47619047619048, 90.54054054054053, 90.58823529411764, 90.60402684563758, 90.625, 90.625, 90.625, 90.625, 90.625, 90.69767441860463, 90.69767441860463, 90.71207430340556, 90.72164948453609, 90.74074074074073, 90.83969465648856, 90.84628670120898, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 90.90909090909092, 91.0, 91.0, 91.0216718266254, 91.03139013452916, 91.06145251396649, 91.0761154855643, 91.1070780399274, 91.13924050632912, 91.1439114391144, 91.17647058823528, 91.17647058823528, 91.17647058823528, 91.17647058823528, 91.17647058823528, 91.17647058823528, 91.1917098445596, 91.2568306010929, 91.2621359223301, 91.30434782608695, 91.30434782608695, 91.30434782608695, 91.30434782608695, 91.34328358208955, 91.42857142857144, 91.47540983606557, 91.48936170212767, 91.54518950437318, 91.57303370786516, 91.58249158249158, 91.6083916083916, 91.61290322580643, 91.6452442159383, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.66666666666669, 91.75257731958764, 91.76470588235294, 91.8032786885246, 91.83673469387756, 91.86746987951808, 91.89189189189187, 91.91616766467067, 92.0, 92.0, 92.0, 92.0, 92.0, 92.0, 92.018779342723, 92.0353982300885, 92.05020920502092, 92.06349206349206, 92.06349206349206, 92.06611570247934, 92.10526315789474, 92.10526315789474, 92.11822660098522, 92.1875, 92.21183800623052, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.30769230769232, 92.39130434782608, 92.4812030075188, 92.57425742574256, 92.5925925925926, 92.5925925925926, 92.5925925925926, 92.5925925925926, 92.5925925925926, 92.5925925925926, 92.5925925925926, 92.63157894736842, 92.6470588235294, 92.68292682926828, 92.69230769230768, 92.72727272727272, 92.74193548387096, 92.7536231884058, 92.80575539568343, 92.80575539568343, 92.82511210762333, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.85714285714286, 92.87671232876713, 92.9032258064516, 92.94117647058825, 92.98245614035088, 92.98780487804878, 93.02325581395348, 93.05555555555556, 93.10344827586208, 93.10344827586208, 93.15068493150685, 93.15068493150685, 93.18181818181819, 93.18181818181819, 93.18181818181819, 93.19727891156464, 93.22033898305084, 93.22033898305084, 93.25842696629212, 93.30985915492958, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.33333333333331, 93.38842975206612, 93.4010152284264, 93.44262295081968, 93.47826086956522, 93.47826086956522, 93.49904397705544, 93.51851851851852, 93.54619565217392, 93.5483870967742, 93.5483870967742, 93.5483870967742, 93.5483870967742, 93.5483870967742, 93.5483870967742, 93.5483870967742, 93.6, 93.6046511627907, 93.6046511627907, 93.61702127659574, 93.65079365079364, 93.65079365079364, 93.67088607594935, 93.67816091954025, 93.6842105263158, 93.69369369369367, 93.71428571428572, 93.71428571428572, 93.72384937238493, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.75, 93.76693766937667, 93.91304347826087, 93.93939393939394, 93.93939393939394, 93.93939393939394, 93.97590361445783, 93.98496240601504, 94.0, 94.00749063670412, 94.0119760479042, 94.0119760479042, 94.02985074626866, 94.05405405405403, 94.0828402366864, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.11764705882352, 94.20289855072464, 94.23076923076924, 94.27312775330395, 94.28571428571428, 94.30379746835445, 94.34782608695652, 94.4, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.44444444444444, 94.45506692160612, 94.51812555260832, 94.52054794520548, 94.52054794520548, 94.53125, 94.54545454545456, 94.54545454545456, 94.5945945945946, 94.5945945945946, 94.61538461538461, 94.64285714285714, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.73684210526316, 94.75218658892128, 94.78260869565216, 94.79166666666669, 94.8051948051948, 94.82758620689656, 94.82758620689656, 94.82758620689656, 94.84536082474229, 94.87179487179488, 94.87179487179488, 94.87179487179488, 94.88074461896451, 94.88977955911824, 94.93670886075948, 94.9404761904762, 94.95548961424332, 94.95798319327731, 95.0, 95.0, 95.0, 95.0, 95.0, 95.0, 95.0, 95.0, 95.0, 95.0, 95.06172839506172, 95.06172839506172, 95.07978723404256, 95.08196721311477, 95.08196721311477, 95.08196721311477, 95.1219512195122, 95.1219512195122, 95.14563106796116, 95.16129032258064, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.23809523809524, 95.28301886792453, 95.28795811518324, 95.3125, 95.3125, 95.3416149068323, 95.34883720930232, 95.34883720930232, 95.36423841059604, 95.38461538461539, 95.41284403669724, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.45454545454544, 95.4653937947494, 95.50561797752808, 95.51569506726456, 95.52238805970148, 95.52845528455283, 95.53072625698324, 95.53072625698324, 95.55555555555556, 95.55555555555556, 95.55555555555556, 95.55555555555556, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.65217391304348, 95.66787003610108, 95.71428571428572, 95.71428571428572, 95.74468085106383, 95.76271186440678, 95.76923076923076, 95.78313253012048, 95.8100558659218, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.83333333333331, 95.86206896551724, 95.87020648967552, 95.89041095890413, 95.89041095890413, 95.8974358974359, 95.91836734693878, 95.91836734693878, 95.94594594594597, 95.95959595959596, 95.95959595959596, 95.95959595959596, 95.98765432098764, 96.0, 96.0, 96.0, 96.0, 96.0, 96.0, 96.05263157894736, 96.05263157894736, 96.07843137254902, 96.09375, 96.09375, 96.1038961038961, 96.1439588688946, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.15384615384616, 96.18320610687024, 96.1904761904762, 96.21621621621622, 96.22641509433961, 96.22641509433961, 96.24413145539906, 96.2962962962963, 96.2962962962963, 96.2962962962963, 96.2962962962963, 96.2962962962963, 96.2962962962963, 96.32352941176472, 96.3302752293578, 96.35036496350364, 96.36363636363636, 96.3855421686747, 96.3963963963964, 96.42857142857144, 96.42857142857144, 96.42857142857144, 96.42857142857144, 96.42857142857144, 96.42857142857144, 96.47058823529412, 96.47058823529412, 96.49122807017544, 96.49122807017544, 96.49122807017544, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.55172413793105, 96.61016949152543, 96.61016949152543, 96.62921348314607, 96.65071770334929, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.66666666666669, 96.72131147540983, 96.74418604651164, 96.7741935483871, 96.7741935483871, 96.7741935483871, 96.7741935483871, 96.7741935483871, 96.7948717948718, 96.80851063829788, 96.81697612732096, 96.81818181818181, 96.82539682539684, 96.82539682539684, 96.84210526315788, 96.875, 96.875, 96.875, 96.875, 96.875, 96.90721649484536, 96.92307692307692, 96.92307692307692, 96.96969696969695, 96.96969696969695, 96.96969696969695, 96.9811320754717, 97.0, 97.0059880239521, 97.01492537313432, 97.01492537313432, 97.05882352941175, 97.05882352941175, 97.05882352941175, 97.10144927536231, 97.12230215827338, 97.14285714285714, 97.14285714285714, 97.14285714285714, 97.14285714285714, 97.14285714285714, 97.14285714285714, 97.14285714285714, 97.22222222222221, 97.22222222222221, 97.22222222222221, 97.22222222222221, 97.22222222222221, 97.24770642201835, 97.26027397260275, 97.2972972972973, 97.2972972972973, 97.36842105263158, 97.36842105263158, 97.36842105263158, 97.36842105263158, 97.36842105263158, 97.36842105263158, 97.39130434782608, 97.4025974025974, 97.43589743589745, 97.43589743589745, 97.43589743589745, 97.43589743589745, 97.43589743589745, 97.4820143884892, 97.48427672955977, 97.5, 97.5, 97.5, 97.5609756097561, 97.5609756097561, 97.5609756097561, 97.5609756097561, 97.5609756097561, 97.60191846522783, 97.61904761904762, 97.61904761904762, 97.67441860465117, 97.67441860465117, 97.67441860465117, 97.67441860465117, 97.67441860465117, 97.67441860465117, 97.67441860465117, 97.70114942528735, 97.70114942528735, 97.72727272727272, 97.72727272727272, 97.81420765027322, 97.82608695652173, 97.82608695652173, 97.8515625, 97.87234042553192, 97.87234042553192, 97.87234042553192, 97.89473684210526, 97.89473684210526, 97.91666666666669, 97.91666666666669, 97.93103448275862, 98.0, 98.01980198019803, 98.03921568627452, 98.03921568627452, 98.06451612903226, 98.07692307692308, 98.1132075471698, 98.14814814814817, 98.14814814814817, 98.14814814814817, 98.14814814814817, 98.18181818181819, 98.21428571428572, 98.27586206896552, 98.30508474576273, 98.33333333333331, 98.4, 98.4126984126984, 98.4126984126984, 98.46153846153847, 98.50746268656717, 98.52941176470588, 98.57142857142856, 98.59154929577464, 98.6046511627907, 98.63013698630137, 98.67549668874172, 98.6970684039088, 98.7012987012987, 98.71794871794872, 98.72611464968152, 98.76543209876544, 98.79518072289156, 98.79518072289156, 98.83720930232558, 98.86363636363636, 98.87640449438202, 98.9247311827957, 98.96907216494844, 99.0, 99.009900990099, 99.07407407407408, 99.09090909090908, 99.21875, 99.24528301886792, 99.24812030075188, 99.25925925925927, 99.3103448275862, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "type": "histogram"}], Object.assign({}, plotlyBase, {
+  title: {text: '卖家准时率分布', font: {size: 15, color: '#0F172A'}},
+  xaxis: {title: '准时率 (%)', gridcolor: plotlyGrid},
+  yaxis: {title: '卖家数量', gridcolor: plotlyGrid},
+  margin: {l: 60, r: 30, t: 60, b: 50},
+  shapes: [{
+    type: 'line', x0: 80, x1: 80, y0: 0, y1: 1, yref: 'paper',
+    line: {color: '#D97706', width: 2, dash: 'dash'}
+  }],
+  annotations: [{
+    x: 80, y: 1, yref: 'paper', text: '80% 告警线', showarrow: false,
+    font: {color: '#D97706', size: 11}, xanchor: 'left'
+  }]
+}));
+</script>
+
+<!-- Chart 3: Monthly Trend -->
+<script>
+Plotly.newPlot("chart3", [{"line": {"color": "#EF553B", "width": 2}, "mode": "lines+markers", "name": "\u603b\u914d\u9001", "x": ["2016-09", "2016-10", "2016-12", "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12", "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08"], "y": [55.0, 19.633962264150945, 5.0, 12.748663101604278, 13.300426569165143, 13.044383346425766, 15.02301346070343, 11.427080394922426, 12.012759170653908, 11.488894628099173, 11.016455998092058, 11.71294287780188, 11.73313979455114, 15.073133918770582, 15.30564121168148, 14.005799971707455, 16.87337909992372, 16.23761245180637, 11.419388055310383, 11.336494295451178, 9.164534120734908, 8.887751786874594, 7.658164068650606], "type": "scatter"}, {"line": {"color": "#636EFA", "width": 2}, "mode": "lines+markers", "name": "\u5356\u5bb6\u53d1\u8d27", "x": ["2016-09", "2016-10", "2016-12", "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12", "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08"], "y": [53.0, 12.950943396226416, 4.0, 2.9598930481283423, 3.280316879951249, 2.9446190102120973, 3.1880156317846287, 2.5997179125528915, 2.703987240829346, 2.537706611570248, 2.4791318864774623, 2.527114967462039, 2.83363108530594, 3.4068331503841933, 3.0687465989479414, 3.0022634035931532, 3.0079328756674295, 2.8217906611452235, 2.1145925272138864, 2.302118832419618, 2.2030839895013123, 2.2792397660818713, 2.153991497401984], "type": "scatter"}, {"line": {"color": "#00CC96", "width": 2}, "mode": "lines+markers", "name": "\u7269\u6d41\u8fd0\u8f93", "x": ["2016-09", "2016-10", "2016-12", "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12", "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08"], "y": [2.0, 5.69811320754717, 1.0, 9.176470588235292, 9.521023765996343, 9.795365278868816, 11.221884498480245, 8.31904090267983, 8.822966507177034, 8.448863636363637, 8.049606487002146, 8.63943118823813, 8.4104510942385, 11.11443468715697, 11.700344639941957, 10.48267081623992, 13.381235697940504, 12.973439954305295, 8.62150632538982, 8.571047562601867, 6.5244422572178475, 5.98196881091618, 5.073374271768225], "type": "scatter"}], Object.assign({}, plotlyBase, {
+  title: {text: '月度配送趋势', font: {size: 15, color: '#0F172A'}},
+  xaxis: {title: '', gridcolor: plotlyGrid},
+  yaxis: {title: '天数', gridcolor: plotlyGrid},
+  margin: {l: 60, r: 30, t: 60, b: 50},
+  shapes: [{
+    type: 'line', x0: '2017-01', x1: '2018-08', y0: 15, y1: 15,
+    line: {color: '#DC2626', width: 1.5, dash: 'dash'}
+  }],
+  annotations: [{
+    x: '2018-06', y: 15, text: '15 天阈值', showarrow: false,
+    font: {color: '#DC2626', size: 11}, yshift: 10
+  }]
+}));
+</script>
+
+<script>function toggleSQL(id){var el=document.getElementById(id);el.style.display=el.style.display==='none'?'block':'none'}</script>
+
+<script>
+async function exportDocx() {
+  var btn = event.target;
+  btn.textContent = '导出中...'; btn.disabled = true;
+  try {
+    var W = 1100;
+    var docHtml = '<html><head><meta charset="utf-8"><style>';
+    docHtml += 'body{font-family:Arial,sans-serif;color:#333;line-height:1.6;padding:10px}';
+    docHtml += 'h1{font-size:22px;color:#1a1a2e;border-bottom:2px solid #4F46E5;padding-bottom:8px}';
+    docHtml += 'h2{font-size:18px;color:#1a1a2e;margin:20px 0 10px;padding-left:10px;border-left:3px solid #4F46E5}';
+    docHtml += 'h3{font-size:15px;color:#333;margin:16px 0 8px}';
+    docHtml += 'table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}';
+    docHtml += 'th{background:#f8fafc;padding:6px 8px;text-align:left;border:1px solid #ddd}';
+    docHtml += 'td{padding:5px 8px;border:1px solid #eee}';
+    docHtml += '.insight{background:#fef2f2;border-left:3px solid #dc2626;padding:10px 14px;margin:10px 0;font-size:13px}';
+    docHtml += '.suggest{background:#ecfdf5;border-left:3px solid #059669;padding:10px 14px;margin:10px 0;font-size:13px}';
+    docHtml += '</style></head><body>';
+
+    var titleEl = document.querySelector('h1');
+    if (titleEl) docHtml += '<h1>' + titleEl.textContent + '</h1>';
+
+    var sections = document.querySelectorAll('.section, [data-capture], .kpi-grid, .grid-2');
+    var processedCaptures = new Set();
+
+    for (var i = 0; i < sections.length; i++) {
+      var sec = sections[i];
+      var capture = sec.getAttribute('data-capture');
+      if (capture && processedCaptures.has(capture)) continue;
+      if (capture) processedCaptures.add(capture);
+
+      var h2 = sec.querySelector('h2');
+      if (h2) docHtml += '<h2>' + h2.textContent + '</h2>';
+
+      if (capture === 'kpi' || sec.classList.contains('kpi-grid')) {
+        try {
+          var kpiCanvas = await html2canvas(sec, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+          var r = W / kpiCanvas.width;
+          var kH = Math.round(kpiCanvas.height * r);
+          var sc = document.createElement('canvas');
+          sc.width = W; sc.height = kH;
+          sc.getContext('2d').drawImage(kpiCanvas, 0, 0, W, kH);
+          docHtml += '<img src="' + sc.toDataURL('image/png') + '">';
+        } catch(e) { console.warn('KPI capture failed:', e); }
+        continue;
+      }
+
+      var plot = sec.querySelector('.js-plotly-plot');
+      if (plot) {
+        try {
+          var imgData = await Plotly.toImage(plot, {format:'png', width:W, height:450});
+          docHtml += '<img src="' + imgData + '">';
+        } catch(e) { console.warn('Chart capture failed:', e); }
+      }
+
+      var tables = sec.querySelectorAll('table');
+      tables.forEach(function(t) { docHtml += t.outerHTML; });
+
+      var insights = sec.querySelectorAll('.insight');
+      insights.forEach(function(ins) {
+        docHtml += '<div class="insight">' + ins.textContent + '</div>';
+      });
+
+      var suggests = sec.querySelectorAll('.suggest');
+      suggests.forEach(function(sug) {
+        docHtml += '<div class="suggest">' + sug.textContent + '</div>';
+      });
+    }
+
+    docHtml += '</body></html>';
+
+    var blob = htmlDocx.asBlob(docHtml, {margins:{top:720, right:720, bottom:720, left:720}});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var fileName = (titleEl ? titleEl.textContent.replace(/[^\w\u4e00-\u9fa5]/g, '_') : 'report') + '.docx';
+    a.href = url; a.download = fileName; a.click();
+    URL.revokeObjectURL(url);
+
+    btn.textContent = '导出 DOCX'; btn.disabled = false;
+  } catch(e) {
+    btn.textContent = '导出 DOCX'; btn.disabled = false;
+    alert('导出失败: ' + e.message);
+    console.error(e);
+  }
+}
+</script>
+</body></html>

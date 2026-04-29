@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "magic": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest"
+      ],
+      "env": {
+        "API_KEY": "629356e77c49eb5d52bef0ee706f0b34213c6c841d0bdd664e2a13a06a6fc718"
+      }
+    },
+    "superconductor": {
+      "type": "http",
+      "url": "http://localhost:31418/mcp?sc_token=c8e68b2dc9f5dff53c99870b8991a7eb&worktree=%2FUsers%2Fjosephdeng%2FDocuments%2Fwedata%2F"
+    }
+  }
+}

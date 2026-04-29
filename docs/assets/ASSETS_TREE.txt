@@ -1,0 +1,217 @@
+WeData Asset Directory Structure & Complete Inventory
+=====================================================
+
+/public/
+├── agents/ (14 PNG files - Agent character avatars)
+│   ├── 1a.png ..................... Rigel agent (default) [120x106]
+│   ├── 1b.png
+│   ├── 2a.png
+│   ├── 2b.png
+│   ├── 3a.png
+│   ├── 3b.png
+│   ├── 4a.png
+│   ├── 4b.png
+│   ├── altair.png
+│   ├── avatar-char.png
+│   ├── math-bg.png
+│   ├── rigel.png
+│   ├── sirius.png
+│   └── vega.png
+│
+├── icons/ (4 PNG files - Skill icons)
+│   ├── skill-model.png ........... ML Model skill icon
+│   ├── skill-query.png ........... Query/Search skill icon
+│   ├── skill-star.png ............ Star/Featured skill icon
+│   └── skill-troubleshoot.png .... Troubleshooting skill icon
+│
+├── file.svg ...................... Generic file icon [391 bytes]
+├── globe.svg ..................... World/globe icon [1035 bytes]
+├── window.svg .................... Window/frame icon [385 bytes]
+├── next.svg ...................... Next.js logo [1375 bytes] (unused)
+└── vercel.svg .................... Vercel logo [128 bytes] (unused)
+
+
+components/ui/
+├── sidebar.tsx
+│   ├── LOGO_OTTER_URL ............ Figma MCP asset (otter icon 32×32/40×40)
+│   │                               https://www.figma.com/api/mcp/asset/170fe2d2-8b83-4cf6-b9aa-fa034fc37ed3
+│   │
+│   ├── LOGO_TEXT_URL ............ Figma MCP asset (weData text 94×16)
+│   │                               https://www.figma.com/api/mcp/asset/7be31ded-83fe-4cf5-a010-2af1de962319
+│   │
+│   └── SIDEBAR_ICON_URL ......... Figma MCP asset (toggle icon 16×16)
+│                                   https://www.figma.com/api/mcp/asset/a23c7904-55b9-4993-8ded-e75299ef8f3a
+│
+└── wedata-icons.tsx
+    ├── IconDataClaw
+    ├── IconIngestData
+    ├── IconCatalog
+    ├── IconStudio
+    ├── IconPin
+    ├── IconWorkflow
+    ├── IconOps
+    ├── IconSQL
+    ├── IconDashboard
+    ├── IconChatBI
+    ├── IconMLExp
+    ├── IconFeature
+    ├── IconModelReg
+    ├── IconModelSvc
+    ├── IconAgents
+    ├── IconApps
+    ├── IconPlatform
+    ├── IconDataSource
+    ├── IconCompute
+    ├── IconGovernance
+    ├── IconWorkspace
+    └── IconSidebarToggle
+
+
+web-lakehouse/assets/
+├── base/ (Main logos)
+│   ├── logo.svg ................. Main otter logo [32×32 viewBox, SVG]
+│   │                               - Gradient: #8AFFF5 → #3AC3FF
+│   │                               - Primary: #0088C2, Accent: #3DE8FF
+│   │
+│   ├── logo.png ................. Raster version of logo
+│   └── upgrade.svg .............. Upgrade promotion icon
+│
+├── CodeBubbyAssets/ (Animation frames - 14 SVGs)
+│   └── 454_116797/
+│       ├── 1.svg through 14.svg .. Animated code character
+│
+├── dashboard/ (Dashboard UI icons - 7 SVGs)
+│   ├── comp-bg.svg
+│   ├── dashboard-empty.svg
+│   ├── empty-favorite.svg
+│   ├── empty-filter.svg
+│   ├── error-visual.svg
+│   ├── noDataShare.svg
+│   └── upgrade.svg
+│
+└── test/ (Test assets)
+    └── empty-133332.svg
+
+
+web-lakehouse/packages/web-ide/src/assets/
+└── icons/ (32 data catalog icons - SVG pairs)
+    ├── catalog/dark/ (16 SVGs - Dark mode catalog icons)
+    │   ├── datacatalog-catalog.svg
+    │   ├── datacatalog-catalogmodel.svg
+    │   ├── datacatalog-catalogtable.svg
+    │   ├── datacatalog-catalogvolume.svg
+    │   ├── datacatalog-copy.svg
+    │   ├── datacatalog-database.svg
+    │   ├── datacatalog-double.svg
+    │   ├── datacatalog-function.svg
+    │   ├── datacatalog-insert.svg
+    │   ├── datacatalog-integer.svg
+    │   ├── datacatalog-model.svg
+    │   ├── datacatalog-schema.svg
+    │   ├── datacatalog-string.svg
+    │   ├── datacatalog-table.svg
+    │   ├── datacatalog-view.svg
+    │   └── datacatalog-volume.svg
+    │
+    └── catalog/light/ (16 SVGs - Light mode catalog icons)
+        ├── datacatalog-catalog.svg
+        ├── datacatalog-catalogmodel.svg
+        ├── datacatalog-catalogtable.svg
+        ├── datacatalog-catalogvolume.svg
+        ├── datacatalog-copy.svg
+        ├── datacatalog-database.svg
+        ├── datacatalog-double.svg
+        ├── datacatalog-function.svg
+        ├── datacatalog-insert.svg
+        ├── datacatalog-integer.svg
+        ├── datacatalog-model.svg
+        ├── datacatalog-schema.svg
+        ├── datacatalog-string.svg
+        ├── datacatalog-table.svg
+        ├── datacatalog-view.svg
+        └── datacatalog-volume.svg
+
+
+app/page.tsx (Usage Reference)
+├── Line 163: Avatar paths reference
+│   └── avatar: "/agents/1a.png"
+│
+├── Line 390: Default agent avatar
+│   └── avatar: summonedAgent?.avatar ?? "/agents/1a.png"
+│
+└── Lines 43-72: Skill icon mappings
+    ├── Icon colors: rgba(0,0,0,0.45)
+    └── References: IconCatalog, IconWorkflow, IconSQL, IconOps, IconMLExp
+
+
+COLOR REFERENCE
+===============
+
+Logo Brand Colors:
+  #8AFFF5 ................. Cyan (Gradient Start)
+  #3AC3FF ................. Blue (Gradient End)
+  #0088C2 ................. Dark Blue (Main Shape)
+  #3DE8FF ................. Bright Cyan (Accents)
+
+UI Colors:
+  #F5F6F8 ................. Sidebar Background
+  #E1E5ED ................. Active Item Background
+  #ECEEF2 ................. Hover Item Background
+  #DDDEDD ................. Light Gray Details
+  #000000 ................. Black Outlines
+  rgba(0,0,0,0.9) ........ Dark Text Primary
+  rgba(0,0,0,0.7) ........ Icon Default
+  rgba(0,0,0,0.5) ........ Text Tertiary
+
+Agent Name Colors:
+  #2873FF ................. Rigel (Blue)
+  #00BBA2 ................. Vega (Teal)
+  #CC6B3A ................. Orion (Orange)
+  #934BFF ................. Nova (Purple)
+
+
+FONT STACK
+==========
+
+Chinese UI: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
+English UI: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
+Special:    'Pixelify Sans' (Agent names)
+
+
+STATISTICS
+==========
+
+Total Files: 70+
+├─ SVG Files: 28+
+├─ PNG Files: 18+
+├─ Figma MCP URLs: 3
+└─ React Components: 22+ icon components
+
+Asset Sizes:
+├─ Largest SVG: 1375 bytes (next.svg)
+├─ Smallest SVG: 128 bytes (vercel.svg)
+└─ PNG Files: Variable (agents ~100-200KB each)
+
+
+KEY REFERENCES IN CODE
+======================
+
+components/ui/sidebar.tsx
+  ├─ Lines 30-33: Figma asset URL definitions
+  ├─ Line 207: LOGO_OTTER_URL usage (expanded)
+  ├─ Line 224: LOGO_TEXT_URL usage
+  ├─ Line 260: SIDEBAR_ICON_URL usage
+  ├─ Line 315: LOGO_OTTER_URL usage (collapsed)
+  └─ Lines 37-46: Color palette (const C)
+
+app/page.tsx
+  ├─ Lines 43-72: Skill icon mappings
+  ├─ Line 163: Default agent avatar reference
+  ├─ Line 390: Agent avatar binding
+  ├─ Lines 23-28: Agent name color mappings
+  └─ Line 484: WeData heading text
+
+─────────────────────────────────────────────────────────────────────────────
+Created: 2026-04-10
+Updated: 2026-04-10
+Purpose: Complete asset inventory for wedata repository
