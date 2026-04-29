@@ -17,7 +17,7 @@ const C = {
 } as const;
 
 const PREVIEW_W = 188;
-const PREVIEW_H = 106;
+const PREVIEW_H = 117;
 
 interface DemoNavSidebarProps {
   flows: DemoFlow[];
@@ -46,7 +46,7 @@ function FlowPreviewImage({ flow, active }: { flow: DemoFlow; active: boolean })
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: "contain",
           display: "block",
           backgroundColor: "#000",
         }}
