@@ -1192,6 +1192,14 @@ export default function Home() {
     const flow = getDemoFlowById(flowId);
     const { baseline } = flow;
 
+    // 切换演示节点时，如果正在编辑/生成动效，自动退出
+    const mode = motionModeRef.current;
+    if (mode === "editing" || mode === "motion-creating-generating" || mode === "motion-creating-input" || mode === "motion-creating") {
+      cleanupEditorState();
+      setMotionMode("idle");
+      setEditorExpanded(true);
+    }
+
     setActiveDemoFlowId(flowId);
 
     if (baseline.viewState === "studio") {
@@ -1222,6 +1230,14 @@ export default function Home() {
   }, []);
 
   const handleMenuClick = useCallback((id: string) => {
+    // 切换视图时，如果正在编辑/生成动效，自动退出
+    const mode = motionModeRef.current;
+    if (mode === "editing" || mode === "motion-creating-generating" || mode === "motion-creating-input" || mode === "motion-creating") {
+      cleanupEditorState();
+      setMotionMode("idle");
+      setEditorExpanded(true);
+    }
+
     setTargetView(id);
 
     if (id === "studio") {
@@ -2062,6 +2078,10 @@ export default function Home() {
                   setMotionMode("editing");
                   setAgentCardPreviewState("hover");
                   setShowParams(true);
+                  // 确保左侧视图回到首页，用户才能看到动效预览
+                  setViewState("dataclaw");
+                  setChatPhase("welcome");
+                  setSidebarMode("agent");
                 }}
               />
             </div>
