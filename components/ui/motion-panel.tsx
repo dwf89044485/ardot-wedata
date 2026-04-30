@@ -61,7 +61,7 @@ export interface MotionTargetDef {
   defaultState?: string;
 }
 
-export type MotionMode = "idle" | "motion-selecting" | "editing" | "style-selecting" | "style-editing" | "comment-selecting" | "comment-editing";
+export type MotionMode = "idle" | "motion-selecting" | "editing" | "style-selecting" | "style-editing" | "comment-selecting" | "comment-editing" | "motion-creating" | "motion-creating-input" | "motion-creating-generating";
 export type MotionTheme = "light" | "dark";
 
 // ── Design tokens ──────────────────────────────────────────────────
@@ -299,7 +299,7 @@ export default function MotionPanel({
   docked = false,
 }: MotionPanelProps) {
   const anchorPos = useAnchorPosition(docked ? null : anchorElement);
-  const [copyFeedback, setCopyFeedback] = useState<'copy'|'reset'|null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<'copy'|'reset'|'confirmDelete'|null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<
     Record<string, boolean>
   >(() => {
@@ -888,6 +888,32 @@ export default function MotionPanel({
           zIndex: docked ? "auto" : 99998,
         }}
       >
+        {/* ── 切换到完整动效编辑器 ── */}
+        <div style={{ padding: '8px 12px 0' }}>
+          <button
+            style={{
+              width: '100%',
+              height: 32,
+              borderRadius: 10,
+              border: 'none',
+              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: colors.textPrimary,
+              fontSize: 11,
+              fontWeight: 500,
+              fontFamily: FONT,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 120ms',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'; }}
+          >
+            切换到完整动效编辑器
+          </button>
+        </div>
+
         {/* ── Header ── */}
         <div
           onPointerDown={(e) => {
@@ -1073,24 +1099,26 @@ export default function MotionPanel({
             >{copyFeedback === 'reset' ? '✓ 已重置' : '重置'}</button>
             <button
               onClick={() => {
-                if (!hasAnyChange) return;
-                const changed = schema.filter(p => config[p.key] !== defaultConfig[p.key]);
-                const lines = changed.map(p => `  ${p.key}: ${defaultConfig[p.key]} → ${config[p.key]}  // ${p.label}`);
-                const text = `我在动效编辑器中调整了「${targetLabel}」的以下参数，请根据这些变更找到对应的代码并更新：\n\n{\n${lines.join(',\n')}\n}`;
-                navigator.clipboard.writeText(text);
-                setCopyFeedback('copy');
-                setTimeout(() => setCopyFeedback(null), 1500);
+                if (copyFeedback === 'confirmDelete') {
+                  // 二次确认：执行删除（关闭面板）
+                  setCopyFeedback(null);
+                  onClose?.();
+                } else {
+                  // 首次点击：进入确认状态
+                  setCopyFeedback('confirmDelete');
+                  setTimeout(() => setCopyFeedback((prev) => prev === 'confirmDelete' ? null : prev), 3000);
+                }
               }}
-              onMouseEnter={e => { if (hasAnyChange) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = copyFeedback === 'confirmDelete' ? (isDark ? 'rgba(255,80,80,0.15)' : 'rgba(255,80,80,0.1)') : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'); }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               style={{
-                flex: 1, height: 28, border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)'}`, borderRadius: 8,
-                background: 'transparent', color: hasAnyChange ? colors.textSecondary : colors.textMuted,
-                fontSize: 11, fontWeight: 500, cursor: hasAnyChange ? 'pointer' : 'default',
+                flex: 1, height: 28, border: `1px solid ${copyFeedback === 'confirmDelete' ? 'rgba(255,80,80,0.4)' : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)')}`, borderRadius: 8,
+                background: 'transparent', color: copyFeedback === 'confirmDelete' ? '#ff5050' : colors.textSecondary,
+                fontSize: 11, fontWeight: 500, cursor: 'pointer',
                 fontFamily: FONT, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 100ms',
+                transition: 'background 100ms, border-color 100ms, color 100ms',
               }}
-            >{copyFeedback === 'copy' ? '✓ 已复制' : '复制'}</button>
+            >{copyFeedback === 'confirmDelete' ? '确认删除？' : '删除'}</button>
           </div>
         </div>
       </motion.div>
@@ -1122,6 +1150,8 @@ interface EditorSelectButtonProps {
   commentPreviewText?: string;    // 批注预览文本
   onCopyComments?: () => void;    // 复制批注
   onClearComments?: () => void;   // 清空批注
+  /** 内联模式：作为顶部工具栏的兄弟节点渲染，不走 fixed + drag，预览面板向下弹 */
+  inline?: boolean;
 }
 
 /* shared pill style */
@@ -1156,14 +1186,35 @@ function handlePillKeyDown(
   }
 }
 
-function setPillHoverBackground(el: HTMLElement, hovered: boolean, isDark: boolean, disabled = false) {
+function setPillHoverBackground(el: HTMLElement, hovered: boolean, isDark: boolean, disabled = false, inline = false) {
   if (disabled) return;
+  if (inline) {
+    el.style.background = hovered ? "rgba(255,255,255,0.12)" : "transparent";
+    return;
+  }
   el.style.background = hovered
     ? (isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.10)")
     : "transparent";
 }
 
-function getPillBase(isDark: boolean): React.CSSProperties {
+function getPillBase(isDark: boolean, inline = false): React.CSSProperties {
+  // inline 模式：完全对齐顶部 Tablet/Desktop/FHD 视口胶囊的视觉语言
+  if (inline) {
+    return {
+      height: 44,
+      borderRadius: 21,
+      border: "1px solid #3B3C3F",
+      background: "#202124",
+      boxShadow: "0 8px 20px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.08)",
+      display: "flex",
+      alignItems: "center",
+      color: "#ffffffd9",
+      fontSize: 13,
+      fontWeight: 500,
+      whiteSpace: "nowrap" as const,
+      fontFamily: "inherit",
+    };
+  }
   return {
     height: 44,
     borderRadius: 22,
@@ -1187,7 +1238,7 @@ function getPillBase(isDark: boolean): React.CSSProperties {
 }
 
 /* reusable icon button inside the pill */
-function PillIconBtn({ title, onClick, children, isDark }: { title?: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode; isDark: boolean }) {
+function PillIconBtn({ title, onClick, children, isDark, inline = false }: { title?: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode; isDark: boolean; inline?: boolean }) {
   return (
     <span
       role="button"
@@ -1196,12 +1247,13 @@ function PillIconBtn({ title, onClick, children, isDark }: { title?: string; onC
       onPointerDown={(e) => handlePillPointerDown(e)}
       onClick={(e) => triggerPillAction(e, onClick)}
       onKeyDown={(e) => handlePillKeyDown(e, onClick)}
-      onMouseEnter={(e) => setPillHoverBackground(e.currentTarget, true, isDark)}
-      onMouseLeave={(e) => setPillHoverBackground(e.currentTarget, false, isDark)}
+      onMouseEnter={(e) => setPillHoverBackground(e.currentTarget, true, isDark, false, inline)}
+      onMouseLeave={(e) => setPillHoverBackground(e.currentTarget, false, isDark, false, inline)}
       style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
         width: PILL_CONTROL_H, height: PILL_CONTROL_H, borderRadius: PILL_CONTROL_H / 2, cursor: "pointer",
         transition: "background 120ms", background: "transparent", flexShrink: 0, outline: "none",
+        color: inline ? "#ffffffa6" : undefined,
       }}
     >
       {children}
@@ -1210,8 +1262,9 @@ function PillIconBtn({ title, onClick, children, isDark }: { title?: string; onC
 }
 
 /* reusable text button inside the pill */
-function PillTextBtn({ onClick, muted, disabled, fullWidth, children, isDark, sx }: { onClick: (e: React.MouseEvent) => void; muted?: boolean; disabled?: boolean; fullWidth?: boolean; children: React.ReactNode; isDark: boolean; sx?: React.CSSProperties }) {
+function PillTextBtn({ onClick, muted, disabled, fullWidth, children, isDark, sx, inline = false }: { onClick: (e: React.MouseEvent) => void; muted?: boolean; disabled?: boolean; fullWidth?: boolean; children: React.ReactNode; isDark: boolean; sx?: React.CSSProperties; inline?: boolean }) {
   const hasIcon = Children.toArray(children).some(c => isValidElement(c));
+  const inlineColor = muted ? "#ffffff73" : "#ffffffa6";
   return (
     <span
       role={disabled ? undefined : "button"}
@@ -1220,16 +1273,21 @@ function PillTextBtn({ onClick, muted, disabled, fullWidth, children, isDark, sx
       onPointerDown={(e) => handlePillPointerDown(e, !!disabled)}
       onClick={(e) => triggerPillAction(e, onClick, !!disabled)}
       onKeyDown={(e) => handlePillKeyDown(e, onClick, !!disabled)}
-      onMouseEnter={(e) => setPillHoverBackground(e.currentTarget, true, isDark, !!disabled)}
-      onMouseLeave={(e) => setPillHoverBackground(e.currentTarget, false, isDark, !!disabled)}
+      onMouseEnter={(e) => setPillHoverBackground(e.currentTarget, true, isDark, !!disabled, inline)}
+      onMouseLeave={(e) => setPillHoverBackground(e.currentTarget, false, isDark, !!disabled, inline)}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        height: PILL_CONTROL_H, padding: "0 10px", borderRadius: PILL_CONTROL_H / 2, cursor: disabled ? "default" : "pointer",
+        height: PILL_CONTROL_H,
+        padding: inline ? "0 14px" : "0 10px",
+        borderRadius: PILL_CONTROL_H / 2,
+        cursor: disabled ? "default" : "pointer",
         transition: disabled ? "none" : "background 120ms", background: "transparent",
         fontSize: 13, fontWeight: 500, outline: "none",
-        color: muted
-          ? (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)")
-          : (isDark ? "rgba(255,255,255,0.94)" : "rgba(0,0,0,0.76)"),
+        color: inline
+          ? inlineColor
+          : (muted
+            ? (isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)")
+            : (isDark ? "rgba(255,255,255,0.94)" : "rgba(0,0,0,0.76)")),
         userSelect: "none", whiteSpace: "nowrap",
         width: fullWidth ? "100%" : undefined,
         justifyContent: fullWidth ? "center" : undefined,
@@ -1244,8 +1302,8 @@ function PillTextBtn({ onClick, muted, disabled, fullWidth, children, isDark, sx
 }
 
 /* vertical divider */
-function PillDivider({ isDark }: { isDark: boolean }) {
-  return <span style={{ width: 1, height: 20, background: isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.16)", flexShrink: 0, margin: "0 4px" }} />;
+function PillDivider({ isDark, inline = false }: { isDark: boolean; inline?: boolean }) {
+  return <span style={{ width: 1, height: 20, background: inline ? "#3B3C3F" : (isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.16)"), flexShrink: 0, margin: "0 4px" }} />;
 }
 
 export function EditorSelectButton({
@@ -1268,6 +1326,7 @@ export function EditorSelectButton({
   commentPreviewText,
   onCopyComments,
   onClearComments,
+  inline = false,
 }: EditorSelectButtonProps) {
   const isIdle = mode === "idle";
   const isSelecting = mode === "motion-selecting";
@@ -1277,7 +1336,7 @@ export function EditorSelectButton({
   const isCommentSelecting = mode === "comment-selecting";
   const isCommentEditing = mode === "comment-editing";
   const isDark = theme === "dark";
-  const pillBase = getPillBase(isDark);
+  const pillBase = getPillBase(isDark, inline);
   const isCollapsed = isIdle && !expanded;
 
   const suppressClickRef = useRef(false);
@@ -1303,15 +1362,15 @@ export function EditorSelectButton({
     leftKey = "idle-expanded";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => { onToggle(); }} isDark={isDark}>
+        <PillTextBtn onClick={() => { onToggle(); }} isDark={isDark} inline={inline}>
           <Sparkles size={14} strokeWidth={2.1} />
           动效编辑
         </PillTextBtn>
-        <PillTextBtn onClick={() => { onStyleToggle?.(); }} isDark={isDark}>
+        <PillTextBtn onClick={() => { onStyleToggle?.(); }} isDark={isDark} inline={inline}>
           <Palette size={14} strokeWidth={2.1} />
           样式编辑
         </PillTextBtn>
-        <PillTextBtn onClick={() => { onCommentToggle?.(); }} isDark={isDark}>
+        <PillTextBtn onClick={() => { onCommentToggle?.(); }} isDark={isDark} inline={inline}>
           <MessageSquarePlus size={14} strokeWidth={2.1} />
           批注
         </PillTextBtn>
@@ -1321,8 +1380,8 @@ export function EditorSelectButton({
     leftKey = "motion-selecting";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark}>请选择组件</PillTextBtn>
-        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark} inline={inline}>请选择组件</PillTextBtn>
+        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
           <LogOut size={14} strokeWidth={2.1} />
           退出编辑
         </PillTextBtn>
@@ -1332,8 +1391,8 @@ export function EditorSelectButton({
     leftKey = "style-selecting";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark}>请选择元素</PillTextBtn>
-        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark} inline={inline}>请选择元素</PillTextBtn>
+        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
           <LogOut size={14} strokeWidth={2.1} />
           退出编辑
         </PillTextBtn>
@@ -1343,8 +1402,8 @@ export function EditorSelectButton({
     leftKey = "comment-selecting";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark}>点击元素添加批注</PillTextBtn>
-        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+        <PillTextBtn onClick={() => {}} muted disabled isDark={isDark} inline={inline}>点击元素添加批注</PillTextBtn>
+        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
           <LogOut size={14} strokeWidth={2.1} />
           退出批注
         </PillTextBtn>
@@ -1354,11 +1413,11 @@ export function EditorSelectButton({
     leftKey = "comment-editing";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => onReselect()} isDark={isDark}>
+        <PillTextBtn onClick={() => onReselect()} isDark={isDark} inline={inline}>
           <MousePointerClick size={14} strokeWidth={2.1} />
           继续批注
         </PillTextBtn>
-        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
           <LogOut size={14} strokeWidth={2.1} />
           退出批注
         </PillTextBtn>
@@ -1368,11 +1427,11 @@ export function EditorSelectButton({
     leftKey = "editing";
     leftContent = (
       <>
-        <PillTextBtn onClick={() => onReselect()} isDark={isDark}>
+        <PillTextBtn onClick={() => onReselect()} isDark={isDark} inline={inline}>
           <MousePointerClick size={14} strokeWidth={2.1} />
           重新选择
         </PillTextBtn>
-        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+        <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
           <LogOut size={14} strokeWidth={2.1} />
           退出编辑
         </PillTextBtn>
@@ -1381,7 +1440,7 @@ export function EditorSelectButton({
   } else if (isStyleEditing) {
     leftKey = "style-editing";
     leftContent = (
-      <PillTextBtn onClick={() => onExitEditing()} isDark={isDark}>
+      <PillTextBtn onClick={() => onExitEditing()} isDark={isDark} inline={inline}>
         <LogOut size={14} strokeWidth={2.1} />
         退出编辑
       </PillTextBtn>
@@ -1389,7 +1448,7 @@ export function EditorSelectButton({
   }
 
   // 宽度逻辑：收起态固定，展开态自适应内容
-  const COLLAPSED_W = 128;
+  const COLLAPSED_W = inline ? 148 : 128;
   const CHANGES_PANEL_W = 176;
   const PILL_GAP = 4;
   const CHANGES_PREVIEW_W = CHANGES_PANEL_W + PILL_GAP + 320;
@@ -1427,20 +1486,20 @@ export function EditorSelectButton({
 
   return (
     <motion.div
-      drag
+      drag={!inline}
       dragMomentum={false}
       dragElastic={0}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      whileDrag={{ scale: 1.02 }}
+      onDragStart={inline ? undefined : handleDragStart}
+      onDragEnd={inline ? undefined : handleDragEnd}
+      whileDrag={inline ? undefined : { scale: 1.02 }}
       data-editor-ui
       style={{
-        position: "fixed",
-        bottom: 24,
-        right: 24,
-        zIndex: 99999,
-        touchAction: "none",
-        cursor: "grab",
+        position: inline ? "relative" : "fixed",
+        bottom: inline ? undefined : 24,
+        right: inline ? undefined : 24,
+        zIndex: inline ? undefined : 99999,
+        touchAction: inline ? undefined : "none",
+        cursor: inline ? "default" : "grab",
         display: "flex",
         alignItems: "flex-end",
         gap: 4,
@@ -1462,7 +1521,7 @@ export function EditorSelectButton({
           pointerEvents: showChangesPanel ? "auto" : "none",
         }}
       >
-        {/* 展开面板：absolute，从底部向上弹出，不撑容器宽度 */}
+        {/* 展开面板：absolute，从底部向上弹出，不撑容器宽度（inline 模式改为从顶部向下弹） */}
         <motion.div
           initial={false}
           animate={{
@@ -1473,7 +1532,8 @@ export function EditorSelectButton({
           transition={{ duration: 0.24, ease: EASE }}
           style={{
             position: "absolute",
-            bottom: 44 + 6,
+            bottom: inline ? undefined : 44 + 6,
+            top: inline ? 44 + 6 : undefined,
             left: 0,
             width: CHANGES_PREVIEW_W,
             height: CHANGES_PREVIEW_H,
@@ -1520,7 +1580,7 @@ export function EditorSelectButton({
             alignItems: "center",
             gap: 4,
             boxSizing: "border-box",
-            padding: PILL_OUTER_PAD,
+            padding: inline ? 6 : PILL_OUTER_PAD,
             color: isDark ? "rgba(255,255,255,0.96)" : "rgba(0,0,0,0.78)",
             border: pillBase.border,
             borderRadius: pillBase.borderRadius,
@@ -1530,13 +1590,13 @@ export function EditorSelectButton({
             WebkitBackdropFilter: pillBase.WebkitBackdropFilter,
           }}
         >
-          <PillTextBtn onClick={() => setIsChangesPreviewOpen((prev) => !prev)} isDark={isDark} sx={{ paddingLeft: 20 }}>
+          <PillTextBtn onClick={() => setIsChangesPreviewOpen((prev) => !prev)} isDark={isDark} inline={inline} sx={{ paddingLeft: 20 }}>
             {changeCount} 项改动 {showChangesPreview ? <ChevronDown size={13} strokeWidth={2.1} /> : <ChevronUp size={13} strokeWidth={2.1} />}
           </PillTextBtn>
-          <PillIconBtn title="复制改动" onClick={() => onCopyChanges?.()} isDark={isDark}>
+          <PillIconBtn title="复制改动" onClick={() => onCopyChanges?.()} isDark={isDark} inline={inline}>
             <Copy size={13} strokeWidth={2.1} />
           </PillIconBtn>
-          <PillIconBtn title="全部重置" onClick={() => onResetAll?.()} isDark={isDark}>
+          <PillIconBtn title="全部重置" onClick={() => onResetAll?.()} isDark={isDark} inline={inline}>
             <RotateCcw size={13} strokeWidth={2.1} />
           </PillIconBtn>
         </div>
@@ -1558,7 +1618,7 @@ export function EditorSelectButton({
           pointerEvents: showCommentPanel ? "auto" : "none",
         }}
       >
-        {/* 展开面板：absolute，从底部向上弹出 */}
+        {/* 展开面板：absolute，从底部向上弹出（inline 模式改为从顶部向下弹） */}
         <motion.div
           initial={false}
           animate={{
@@ -1569,7 +1629,8 @@ export function EditorSelectButton({
           transition={{ duration: 0.24, ease: EASE }}
           style={{
             position: "absolute",
-            bottom: 44 + 6,
+            bottom: inline ? undefined : 44 + 6,
+            top: inline ? 44 + 6 : undefined,
             left: 0,
             width: CHANGES_PREVIEW_W,
             height: CHANGES_PREVIEW_H,
@@ -1615,7 +1676,7 @@ export function EditorSelectButton({
             alignItems: "center",
             gap: 4,
             boxSizing: "border-box",
-            padding: PILL_OUTER_PAD,
+            padding: inline ? 6 : PILL_OUTER_PAD,
             color: isDark ? "rgba(255,255,255,0.96)" : "rgba(0,0,0,0.78)",
             border: pillBase.border,
             borderRadius: pillBase.borderRadius,
@@ -1625,13 +1686,13 @@ export function EditorSelectButton({
             WebkitBackdropFilter: pillBase.WebkitBackdropFilter,
           }}
         >
-          <PillTextBtn onClick={() => setIsCommentPreviewOpen((prev) => !prev)} isDark={isDark} sx={{ paddingLeft: 20 }}>
+          <PillTextBtn onClick={() => setIsCommentPreviewOpen((prev) => !prev)} isDark={isDark} inline={inline} sx={{ paddingLeft: 20 }}>
             {commentCount} 条批注 {showCommentPreview ? <ChevronDown size={13} strokeWidth={2.1} /> : <ChevronUp size={13} strokeWidth={2.1} />}
           </PillTextBtn>
-          <PillIconBtn title="复制批注" onClick={() => onCopyComments?.()} isDark={isDark}>
+          <PillIconBtn title="复制批注" onClick={() => onCopyComments?.()} isDark={isDark} inline={inline}>
             <Copy size={13} strokeWidth={2.1} />
           </PillIconBtn>
-          <PillIconBtn title="清空批注" onClick={() => onClearComments?.()} isDark={isDark}>
+          <PillIconBtn title="清空批注" onClick={() => onClearComments?.()} isDark={isDark} inline={inline}>
             <Trash2 size={13} strokeWidth={2.1} />
           </PillIconBtn>
         </div>
@@ -1645,7 +1706,7 @@ export function EditorSelectButton({
           style={{
             ...pillBase,
             overflow: "hidden",
-            padding: PILL_OUTER_PAD,
+            padding: inline ? 6 : PILL_OUTER_PAD,
             cursor: isCollapsed ? "pointer" : "default",
             position: "relative",
             width: COLLAPSED_W,
@@ -1728,14 +1789,14 @@ export function EditorSelectButton({
 
           {/* 右侧固定区 — 始终不动 */}
           <PillDivider isDark={isDark} />
-          <PillIconBtn title={isDark ? "切换为亮色" : "切换为暗色"} onClick={() => onThemeToggle?.()} isDark={isDark}>
+          <PillIconBtn title={isDark ? "切换为亮色" : "切换为暗色"} onClick={() => onThemeToggle?.()} isDark={isDark} inline={inline}>
             {isDark ? <Sun size={14} strokeWidth={2.1} /> : <Moon size={14} strokeWidth={2.1} />}
           </PillIconBtn>
           <PillDivider isDark={isDark} />
           <PillIconBtn title="关闭" onClick={() => {
             if (isSelecting || isStyleSelecting || isEditing || isStyleEditing || isCommentSelecting || isCommentEditing) { (onClose ?? onExitEditing)(); }
             else { onExpandedChange(false); }
-          }} isDark={isDark}>
+          }} isDark={isDark} inline={inline}>
             <X size={15} strokeWidth={2.2} />
           </PillIconBtn>
         </motion.div>

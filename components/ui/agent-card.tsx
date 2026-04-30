@@ -114,6 +114,7 @@ export const AGENT_FAN_MOTION: MotionTargetDef = {
   label: "卡片间动效",
   schema: [
     { key: "hoverHeight", label: "悬浮高度", min: 0, max: 1.4, step: 0.05 },
+    { key: "dist1X", label: "推开距离", min: 0, max: 60, step: 1 },
     { key: "fanTransitionDuration", label: "推开时长", min: 0.1, max: 1.0, step: 0.05 },
     { key: "hoverTransitionDuration", label: "浮起时长", min: 0.1, max: 1.0, step: 0.05 },
   ],
@@ -708,6 +709,7 @@ export function AgentFanCards({
   previewState,
   isSelecting = false,
   onSelect,
+  hideCardInnerOverlay = false,
 }: {
   onSkillClick?: (label: string, agent: { name: string; title: string; avatar: string; summonText?: string }) => void;
   onSummon?: (agent: { name: string; title: string; avatar: string; summonText?: string }) => void;
@@ -718,6 +720,8 @@ export function AgentFanCards({
   isSelecting?: boolean;
   /** 内层选区点击回调 */
   onSelect?: (targetId: string) => void;
+  /** 隐藏卡片内动效选框（但保留 isSelecting 的 hover 禁用行为） */
+  hideCardInnerOverlay?: boolean;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -793,7 +797,7 @@ export function AgentFanCards({
               }}
             >
               {/* 仅中间卡（i===1）添加内层选区 Overlay */}
-              {i === 1 && onSelect ? (
+              {i === 1 && onSelect && !hideCardInnerOverlay ? (
                 <MotionTargetOverlay
                   targetId={AGENT_CARD_INNER_MOTION.id}
                   targetLabel={AGENT_CARD_INNER_MOTION.label}

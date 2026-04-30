@@ -6,6 +6,9 @@ import Sidebar, { type SidebarMode, SIDEBAR_MOTION } from "@/components/ui/sideb
 import ClaudeChatInput, { CHAT_INPUT_MOTION, ADD_MENU_MOTION, type ChatInputHandle, type ChatInputPreviewState, type SkillChip, type TableChip } from "@/components/ui/claude-style-chat-input";
 import { AgentFanCards, type AgentCardPreviewState, type FanCardsConfig, type CardInnerConfig, DEFAULT_FAN_CONFIG, DEFAULT_CARD_INNER_CONFIG, AGENT_FAN_MOTION, AGENT_CARD_INNER_MOTION, AGENT_CARD_MOTION } from "@/components/ui/agent-card";
 import MotionPanel, { EditorSelectButton, type MotionMode, type MotionTheme } from "@/components/ui/motion-panel";
+import MotionEditorPill from "@/components/ui/motion-editor-pill";
+import MotionPromptPopover from "@/components/ui/motion-prompt-popover";
+import MotionChatInput, { type MotionChatMessage } from "@/components/ui/motion-chat-input";
 import MotionTargetOverlay from "@/components/ui/motion-target-overlay";
 import { IconCatalog, IconWorkflow, IconSQL, IconOps, IconMLExp } from "@/components/ui/wedata-icons";
 import StudioView from "@/components/ui/studio-view";
@@ -159,6 +162,23 @@ export default function Home() {
   const [motionTarget, setMotionTarget] = useState<string | null>(null);
   const [motionTheme, setMotionTheme] = useState<MotionTheme>("dark");
   const [editorExpanded, setEditorExpanded] = useState(false);
+
+  // ── 新建动效流程状态 ──
+  const creatingElementRef = useRef<HTMLElement | null>(null);
+  const [creatingPrompt, setCreatingPrompt] = useState<string>("");
+  const [motionChatMessages, setMotionChatMessages] = useState<MotionChatMessage[]>([]);
+  const creatingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── 右侧面板分割线拖动 ──
+  const [panelSplitRatio, setPanelSplitRatio] = useState(0.5);
+  const panelContainerRef = useRef<HTMLDivElement>(null);
+  const isDraggingSplitter = useRef(false);
+
+  // ── 动态新增的 schema 参数（演示用） ──
+  const [extraFanSchema, setExtraFanSchema] = useState<Array<{ key: string; label: string; min: number; max: number; step: number }>>([]);
+
+  // ── 参数面板延迟显示（AI 思考完成后才展示） ──
+  const [showParams, setShowParams] = useState(true);
 
   // 面板跟随元素：根据 motionTarget 查询对应的锚点 DOM
   const [motionAnchorEl, setMotionAnchorEl] = useState<HTMLElement | null>(null);
@@ -467,6 +487,13 @@ export default function Home() {
     // 清理 comment editing 状态（但不清除已有批注数据）
     setCommentElement(null);
     setEditingCommentId(null);
+    // 清理新建动效 timer
+    if (creatingTimerRef.current) {
+      clearTimeout(creatingTimerRef.current);
+      creatingTimerRef.current = null;
+    }
+    creatingElementRef.current = null;
+    // 不清空 motionChatMessages，保留对话历史供编辑时查看
     setMotionMode("idle");
     setEditorExpanded(true);
   }, [cleanupEditorState]);
@@ -562,9 +589,36 @@ export default function Home() {
     setMotionMode("motion-selecting");
   }, []);
 
+  // 新建动效：prompt 提交 → generating → 2.5s 后自动进入 editing
+  const handleCreatingPromptSubmit = useCallback((prompt: string) => {
+    setCreatingPrompt(prompt);
+    setMotionChatMessages([]);
+    setShowParams(false); // 先隐藏参数，等 AI 分析完再展示
+    setMotionMode("motion-creating-generating" as MotionMode);
+    // 隐藏选中标签（保留选框）
+    if (selLabelRef.current) selLabelRef.current.style.display = 'none';
+    // 不再用 2.5s 假等待，改由聊天区思考完成后切换到 editing
+  }, []);
+
+  // 新建动效：prompt 弹窗关闭 → 回到元素选择态
+  const handleCreatingPromptClose = useCallback(() => {
+    setMotionMode("motion-creating" as MotionMode);
+  }, []);
+
   const handleMotionSelect = useCallback((targetId: string) => {
     setMotionTarget(targetId);
     setMotionMode("editing");
+    // 编辑已有动效时清空 creatingPrompt，避免 MotionChatInput 重跑初始 AI 流程
+    setCreatingPrompt("");
+
+    // 如果没有对话历史（直接编辑预设动效），预填充模拟的历史对话
+    setMotionChatMessages((prev) => {
+      if (prev.length > 0) return prev; // 已有历史，保留
+      return [
+        { id: "hist-1", role: "user" as const, text: "为卡片添加 hover 悬浮动效", tab: "adjust" as const },
+        { id: "hist-2", role: "ai" as const, text: "已为你生成卡片悬浮动效 ✨\n\n方案：hover 时卡片向上浮起 + 放大 + 投影加深，相邻卡片向两侧推开让出空间。\n\n当前参数：\n· 悬浮高度 0.35\n· 推开距离 12px\n· 推开时长 0.6s\n· 浮起时长 0.6s\n\n你可以拖动右侧滑杆微调，或继续描述修改需求。", tab: "adjust" as const, isThinking: false },
+      ];
+    });
 
     if (targetId === "agent-card") {
       clearCardInnerPreviewTimers();
@@ -584,7 +638,9 @@ export default function Home() {
   motionModeRef.current = motionMode;
 
   useEffect(() => {
-    if (motionModeRef.current !== 'idle') {
+    const mode = motionModeRef.current;
+    // generating/editing 模式下不自动退出（正在生成/编辑动效）
+    if (mode !== 'idle' && mode !== 'motion-creating-generating' && mode !== 'editing') {
       cleanupEditorState();
       setMotionMode('idle');
       setEditorExpanded(false);
@@ -616,6 +672,24 @@ export default function Home() {
           break;
         case 'motion-selecting':
         case 'style-selecting':
+          setMotionMode('idle');
+          setEditorExpanded(true);
+          break;
+        case 'motion-creating':
+          // 从新建动效的元素选择态回到 idle
+          setMotionMode('idle');
+          setEditorExpanded(true);
+          break;
+        case 'motion-creating-input':
+          // 关闭 prompt 弹窗，回到元素选择态
+          setMotionMode('motion-creating');
+          break;
+        case 'motion-creating-generating':
+          // 取消生成，回到 idle
+          if (creatingTimerRef.current) {
+            clearTimeout(creatingTimerRef.current);
+            creatingTimerRef.current = null;
+          }
           setMotionMode('idle');
           setEditorExpanded(true);
           break;
@@ -741,19 +815,19 @@ export default function Home() {
   }, [commentExportText]);
 
   // ── 样式模式：自由选区（capture listener + 高亮） ──
-  const isStyleMode = motionMode === 'style-selecting' || motionMode === 'style-editing';
+  const isStyleMode = motionMode === 'style-selecting' || motionMode === 'style-editing' || motionMode === 'motion-creating' || motionMode === 'motion-creating-input' || motionMode === 'motion-creating-generating';
 
   useEffect(() => {
     if (!isStyleMode) return;
 
     // 高亮框：pointer-events:none，不影响交互
     const highlight = document.createElement('div');
-    highlight.style.cssText = 'position:fixed;pointer-events:none;border:1px dashed rgba(22,100,255,0.6);background:rgba(22,100,255,0.04);border-radius:0;z-index:99999;transition:top 50ms,left 50ms,width 50ms,height 50ms;';
+    highlight.style.cssText = 'position:fixed;pointer-events:none;border:1px dashed rgba(118,212,25,0.6);background:rgba(118,212,25,0.04);border-radius:0;z-index:99999;transition:top 50ms,left 50ms,width 50ms,height 50ms;';
     document.body.appendChild(highlight);
 
     // 选中框：选中后持久显示，独立于 hover 高亮
     const selection = document.createElement('div');
-    selection.style.cssText = 'position:fixed;pointer-events:none;border:1.5px solid rgba(22,100,255,0.6);background:rgba(22,100,255,0.08);border-radius:0;z-index:99998;display:none;';
+    selection.style.cssText = 'position:fixed;pointer-events:none;border:1.5px solid rgba(118,212,25,0.6);background:rgba(118,212,25,0.08);border-radius:0;z-index:99998;display:none;';
     document.body.appendChild(selection);
     selectionOverlayRef.current = selection;
 
@@ -764,7 +838,7 @@ export default function Home() {
 
     // 选中标签
     const selLabel = document.createElement('div');
-    selLabel.style.cssText = 'position:fixed;pointer-events:none;z-index:99998;font:500 10px/1 "PingFang SC",-apple-system,sans-serif;color:#fff;background:rgba(22,100,255,0.85);padding:2px 6px;border-radius:0 0 3px 3px;white-space:nowrap;display:none;';
+    selLabel.style.cssText = 'position:fixed;pointer-events:none;z-index:99998;font:500 10px/1 "PingFang SC",-apple-system,sans-serif;color:#fff;background:rgba(70,136,29,0.9);padding:2px 6px;border-radius:0 0 3px 3px;white-space:nowrap;display:none;';
     document.body.appendChild(selLabel);
     selLabelRef.current = selLabel;
 
@@ -780,6 +854,21 @@ export default function Home() {
     let currentHoverTarget: Element | null = null;
 
     const onMove = (e: MouseEvent) => {
+      const mode = motionModeRef.current;
+      // editing / generating / input 模式下：只保留选中框跟随，不做 hover 高亮，不显示标签
+      if (mode === 'editing' || mode === 'motion-creating-generating' || mode === 'motion-creating-input') {
+        highlight.style.display = 'none';
+        hoverLabel.style.display = 'none';
+        selLabel.style.display = 'none';
+        if (selectedElementRef.current?.isConnected) {
+          const sr = selectedElementRef.current.getBoundingClientRect();
+          Object.assign(selection.style, {
+            display: '', top: sr.top + 'px', left: sr.left + 'px',
+            width: sr.width + 'px', height: sr.height + 'px',
+          });
+        }
+        return;
+      }
       // hover 高亮：始终跟鼠标走
       let target = document.elementFromPoint(e.clientX, e.clientY);
       if (!target || target.closest('[data-editor-ui]')) {
@@ -818,7 +907,7 @@ export default function Home() {
 
     const onClick = (e: MouseEvent) => {
       const mode = motionModeRef.current;
-      if (mode !== 'style-selecting' && mode !== 'style-editing') return;
+      if (mode !== 'style-selecting' && mode !== 'style-editing' && mode !== 'motion-creating') return;
 
       // 事件源在编辑器 UI 内（包括程序化 .click() 触发的）→ 不拦截
       if (e.target instanceof Element && e.target.closest('[data-editor-ui]')) return;
@@ -832,6 +921,14 @@ export default function Home() {
       let el = target as HTMLElement;
       if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) {
         el = (el.closest('svg') || el) as HTMLElement;
+      }
+
+      if (mode === 'motion-creating') {
+        // 新建动效：选中元素后存入 ref，切到 prompt 输入态
+        creatingElementRef.current = el;
+        selectStyleElement(el);
+        setMotionMode('motion-creating-input');
+        return;
       }
       selectStyleElement(el);
     };
@@ -1209,7 +1306,7 @@ export default function Home() {
               <MotionTargetOverlay
                 targetId="sidebar"
                 targetLabel={SIDEBAR_MOTION.label}
-                isSelecting={motionMode === "motion-selecting"}
+                isSelecting={false /* 暂时隐藏 */}
                 onSelect={handleMotionSelect}
               >
                 <Sidebar
@@ -1441,6 +1538,7 @@ export default function Home() {
                                       onSummon={handleSummon}
                                       isSelecting={motionMode === "motion-selecting"}
                                       onSelect={handleMotionSelect}
+                                      hideCardInnerOverlay
                                     />
                                   </MotionTargetOverlay>
                                 </div>
@@ -1586,7 +1684,7 @@ export default function Home() {
                       <MotionTargetOverlay
                         targetId="chat-input"
                         targetLabel={CHAT_INPUT_MOTION.label}
-                        isSelecting={motionMode === "motion-selecting"}
+                        isSelecting={false /* 暂时隐藏 */}
                         onSelect={handleMotionSelect}
                       >
                         <ClaudeChatInput
@@ -1605,7 +1703,7 @@ export default function Home() {
                           previewState={motionMode === "editing" && motionTarget === "chat-input" && chatInputPreviewState !== "free" ? chatInputPreviewState : undefined}
                           addMenuConfig={addMenuConfig}
                           addMenuPreviewState={motionMode === "editing" && motionTarget === "add-menu" ? addMenuPreviewState : undefined}
-                          isSelecting={motionMode === "motion-selecting"}
+                          isSelecting={false /* 暂时隐藏 */}
                           onMotionSelect={handleMotionSelect}
                         />
                       </MotionTargetOverlay>
@@ -1635,18 +1733,39 @@ export default function Home() {
           </div>{/* L1154 inner div 结束 */}
           </div>{/* L1143 demo div 结束 */}
 
-          {/* ── 顶部悬浮视口胶囊（高度对齐 Ardot toolbar 44px） ── */}
+          {/* ── 顶部悬浮：动效编辑胶囊 ── */}
+          {(motionMode === "idle" || motionMode === "motion-selecting" || motionMode === "editing" || motionMode === "motion-creating" || motionMode === "motion-creating-input" || motionMode === "motion-creating-generating") && (
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 20,
+              }}
+            >
+              <MotionEditorPill
+                mode={motionMode as "idle" | "motion-selecting" | "editing" | "motion-creating" | "motion-creating-input" | "motion-creating-generating"}
+                onEnter={handleMotionButtonClick}
+                onReselect={handleReselect}
+                onCreateMotion={() => setMotionMode("motion-creating" as MotionMode)}
+                onExit={handleEditorClose}
+              />
+            </div>
+          )}
+
+          {/* ── 底部悬浮：视口切换 + Zoom 胶囊 ── */}
           <div
             style={{
               position: "absolute",
-              top: 12,
+              bottom: 12,
               left: "50%",
               transform: "translateX(-50%)",
               display: "flex",
               alignItems: "center",
               gap: 12,
               height: 44,
-              padding: "6px 12px",
+              padding: 6,
               borderRadius: 21,
               border: "1px solid #3B3C3F",
               background: "#202124",
@@ -1692,23 +1811,58 @@ export default function Home() {
       </div>
 
       <div
+        ref={panelContainerRef}
         style={{
-          width: 240,
+          width: (motionMode === "editing" || motionMode === "motion-creating-generating") ? 300 : 0,
           height: "100vh",
           flexShrink: 0,
           backgroundColor: "#1a1a1a",
-          overflowY: "auto",
           overflowX: "hidden",
-          paddingLeft: 12,
-          paddingRight: 12,
+          overflowY: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          paddingLeft: (motionMode === "editing" || motionMode === "motion-creating-generating") ? 12 : 0,
+          paddingRight: (motionMode === "editing" || motionMode === "motion-creating-generating") ? 12 : 0,
+          transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1), padding 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
+        {/* 参数面板（可滚动区域）— 占 splitRatio */}
+        <div style={{
+          flex: panelSplitRatio,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}>
+        {/* 正在生成占位 */}
+        {!showParams && (motionMode === "editing" || motionMode === "motion-creating-generating") && (
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            gap: 8,
+            opacity: 0.6,
+          }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: "50%",
+              border: "2px solid rgba(118,212,25,0.3)",
+              borderTopColor: "rgba(118,212,25,0.9)",
+              animation: "spin 0.8s linear infinite",
+            }} />
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontFamily: "'PingFang SC', -apple-system, sans-serif" }}>
+              正在生成动效参数...
+            </span>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
         <AnimatePresence>
-          {chatPhase === "welcome" && motionMode === "editing" && motionTarget === "agent-fan" && (
+          {showParams && chatPhase === "welcome" && (motionMode === "editing" || motionMode === "motion-creating-generating") && motionTarget === "agent-fan" && (
             <MotionPanel
               targetLabel={AGENT_FAN_MOTION.label}
               theme={motionTheme}
-              schema={AGENT_FAN_MOTION.schema}
+              schema={[...AGENT_FAN_MOTION.schema, ...extraFanSchema]}
               config={fanConfig as unknown as Record<string, number>}
               defaultConfig={AGENT_FAN_MOTION.defaultConfig}
               onChange={(c) => setFanConfig(c as unknown as FanCardsConfig)}
@@ -1817,6 +1971,102 @@ export default function Home() {
             }}
           />
         )}
+        </div>{/* 参数面板滚动区结束 */}
+
+        {/* 可拖动分割线 + 底部聊天输入区 */}
+        {(motionMode === "editing" || motionMode === "motion-creating-generating") && (
+          <>
+            {/* 分割线（可拖动） */}
+            <div
+              style={{
+                flexShrink: 0,
+                height: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "row-resize",
+                userSelect: "none",
+                position: "relative",
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                isDraggingSplitter.current = true;
+                const container = panelContainerRef.current;
+                if (!container) return;
+                const startY = e.clientY;
+                const startRatio = panelSplitRatio;
+                const containerH = container.clientHeight;
+
+                const onMove = (ev: MouseEvent) => {
+                  if (!isDraggingSplitter.current) return;
+                  const delta = ev.clientY - startY;
+                  let newRatio = startRatio + delta / containerH;
+                  newRatio = Math.max(0.2, Math.min(0.8, newRatio));
+                  setPanelSplitRatio(newRatio);
+                };
+                const onUp = () => {
+                  isDraggingSplitter.current = false;
+                  document.removeEventListener("mousemove", onMove);
+                  document.removeEventListener("mouseup", onUp);
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+              }}
+            >
+              {/* 分割线视觉 */}
+              <div style={{
+                width: "100%",
+                height: 1,
+                background: "rgba(255,255,255,0.1)",
+                position: "absolute",
+                top: "50%",
+                left: 0,
+              }} />
+              {/* 拖拽手柄示意 */}
+              <div style={{
+                width: 24,
+                height: 4,
+                borderRadius: 2,
+                background: "rgba(255,255,255,0.2)",
+                position: "relative",
+                zIndex: 1,
+              }} />
+            </div>
+
+            {/* 聊天输入区 — 占 (1 - splitRatio) */}
+            <div style={{
+              flex: 1 - panelSplitRatio,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              padding: "0 0 8px",
+            }}>
+              <MotionChatInput
+                initialPrompt={creatingPrompt || undefined}
+                messages={motionChatMessages}
+                onMessagesChange={setMotionChatMessages}
+                onAddParam={(param) => {
+                  setExtraFanSchema((prev) => {
+                    if (prev.some((p) => p.key === param.key)) return prev;
+                    return [...prev, param];
+                  });
+                }}
+                onAdjustParam={(key, value) => {
+                  setFanConfig((prev) => ({ ...prev, [key]: value }));
+                  // 触发一次 hover 预览动效
+                  setAgentCardPreviewState("hover");
+                }}
+                onThinkingComplete={() => {
+                  // AI 分析完毕：显示参数面板 + 进入 editing 模式
+                  setMotionTarget("agent-fan");
+                  setMotionMode("editing");
+                  setAgentCardPreviewState("hover");
+                  setShowParams(true);
+                }}
+              />
+            </div>
+          </>
+        )}
 
       </div>
 
@@ -1837,29 +2087,16 @@ export default function Home() {
         />
       )}
 
-      {/* Editor 选择模式按钮 - Agent welcome 与 Studio(含过渡态)显示，编辑中始终显示 */}
-      {shouldShowEditorSelectButton && (
-        <EditorSelectButton
-          mode={motionMode}
-          theme={motionTheme}
-          expanded={editorExpanded}
-          onExpandedChange={setEditorExpanded}
-          onToggle={handleMotionButtonClick}
-          onStyleToggle={handleStyleToggle}
-          onCommentToggle={handleCommentToggle}
-          onReselect={handleReselect}
-          onExitEditing={handleEditorClose}
-          onThemeToggle={() => setMotionTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-          onResetAll={handleResetAll}
-          onCopyChanges={handleCopyAllChanges}
-          changeCount={motionChangeCount + styleChangeCount}
-          changesPreviewText={allChangesText}
-          commentCount={commentCount}
-          commentPreviewText={commentExportText}
-          onCopyComments={handleCopyComments}
-          onClearComments={handleCommentClearAll}
+      {/* 新建动效：Prompt 输入弹窗 */}
+      {motionMode === 'motion-creating-input' && creatingElementRef.current && (
+        <MotionPromptPopover
+          element={creatingElementRef.current}
+          onSubmit={handleCreatingPromptSubmit}
+          onClose={handleCreatingPromptClose}
         />
       )}
+
+      {/* Editor 选择模式按钮已挪至中栏顶部视口胶囊旁（见上方） */}
 
     </div>
   );
@@ -2120,7 +2357,7 @@ function ZoomControlInline({
       >
         {Math.round(zoomPercent)}%
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-          <path d="M2 3L4 5L6 3" stroke="#ffffffa6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 5L4 3L6 5" stroke="#ffffffa6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -2128,7 +2365,7 @@ function ZoomControlInline({
         <div
           style={{
             position: "absolute",
-            top: "100%",
+            bottom: "100%",
             right: 0,
             marginBottom: 8,
             borderRadius: 8,

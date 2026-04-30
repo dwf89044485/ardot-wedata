@@ -4,16 +4,16 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ---------------------------------------------------------------------------
-// Design DNA secondary blue: #1664FF → rgb(22, 100, 255)
+// Ardot brand green: #76D419 → rgb(118, 212, 25)
 // ---------------------------------------------------------------------------
-const BLUE = "22, 100, 255";
+const BRAND = "118, 212, 25";
 
-const BORDER_IDLE = `1.5px dashed rgba(${BLUE}, 0.35)`;
-const BORDER_HOVER = `1.5px dashed rgba(${BLUE}, 0.6)`;
-const BG_IDLE = `rgba(${BLUE}, 0.04)`;
-const BG_HOVER = `rgba(${BLUE}, 0.08)`;
-const SHADOW_HOVER = `0 2px 12px rgba(${BLUE}, 0.12)`;
-const LABEL_BG = `rgba(${BLUE}, 0.85)`;
+const BORDER_IDLE = `1.5px dashed rgba(${BRAND}, 0.45)`;
+const BORDER_HOVER = `1.5px dashed rgba(${BRAND}, 0.7)`;
+const BG_IDLE = `rgba(${BRAND}, 0.04)`;
+const BG_HOVER = `rgba(${BRAND}, 0.1)`;
+const SHADOW_HOVER = `0 2px 12px rgba(${BRAND}, 0.15)`;
+const LABEL_BG = `rgba(70, 136, 29, 0.9)`;
 
 const PAD = 12;
 // Sample for 600ms at 60fps to catch framer-motion animations
